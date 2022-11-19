@@ -7,12 +7,44 @@ use serde::{Deserialize, Serialize};
 
 const CONFIG_KEY: &[u8] = b"config";
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct State {
-    pub state: ContractState,
-    pub player1: Millionaire,
-    pub player2: Millionaire,
-    pub proposals : Vec
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+pub struct Proposal {
+    id: String,
+    // maybe not needed: active: bool,
+    choice_type: u8,
+    start_time: u32,
+    end_time: u32,
+}
+
+impl Proposal {
+    /// Constructor function. Takes input parameters and initializes a struct containing
+    /// those items
+    // TODO   only DAO admins can  create new proposals
+    pub fn new(id: String, choice_type: u8, start_time: u32, end_time: u32) -> Proposal {
+        return Proposal {
+            id: id,
+            choice_type: choice_type,
+            start_time: start_time,
+            end_time: end_time,
+        };
+    }
+
+    /// Viewer function to read the private member of the Millionaire struct.
+    /// We could make the member public instead and access it directly if we wanted to simplify
+    /// access patterns
+    pub fn name(&self) -> &String {
+        &self.id
+    }
+    // TODO returrn a struct? return "self"?
+    // pub fn info(&self) -> &Proposal {
+    //     &self.id,
+    //     &self.choice_type,
+    //     &self.start_time,
+    //     &self.end_time
+    // }
+    // pub fn selfinfo(&self) -> Self {
+    //     return &self;
+    // }
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
@@ -20,6 +52,14 @@ pub enum ContractState {
     Init,
     Got1,
     Done,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+pub struct State {
+    pub state: ContractState,
+    pub player1: Millionaire,
+    pub player2: Millionaire,
+    pub proposals: Vec<Proposal>,
 }
 
 impl Default for ContractState {
@@ -47,47 +87,6 @@ impl From<ContractState> for u8 {
             ContractState::Done => 2,
         }
     }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default, Eq)]
-pub struct Proposal {
-    id: String,
-    // maybe not needed: active: bool,
-    choice_type: u8,
-    start_time: Date,
-    end_time: Date,
-}
-
-impl Proposal {
-    /// Constructor function. Takes input parameters and initializes a struct containing  
-    /// those items
-    // TODO   only DAO admins can  create new proposals
-    pub fn new(id: String, choice_type: u8, start_time: Date, end_time: Date) -> Proposal {
-        return Proposal {
-            id: id,
-            choice_type: choice_type,
-            start_time: start_time,
-            end_time: end_time,
-        };
-    }
-
-    /// Viewer function to read the private member of the Millionaire struct.
-    /// We could make the member public instead and access it directly if we wanted to simplify
-    /// access patterns
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-    // TODO returrn a struct? return "self"?
-    pub fn info(&self) -> &Proposal {
-        &self.id,
-        &self.choice_type,
-        &self.start_time,
-        &self.end_time
-    }
-    pub fn selfinfo(&self) -> Self {
-        return &self
-    }
-
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, Eq)]

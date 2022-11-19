@@ -45,8 +45,8 @@ pub fn try_add_proposal(
     deps: DepsMut,
     id: String,
     choice_type: u8,
-    start_time: Date,
-    end_time: Date,
+    start_time: u32,
+    end_time: u32,
 ) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
 
