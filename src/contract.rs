@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::errors::CustomContractError;
 use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RicherResponse};
-use crate::state::{config, config_read, ContractState, Millionaire, Proposal, State};
+use crate::state::{config, config_read, ContractState, Millionaire, Proposal, State, PROPOSALS};
 
 #[entry_point]
 pub fn instantiate(
@@ -61,10 +61,12 @@ pub fn try_add_proposal(
     end_time: u32,
 ) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
-
-    state
-        .proposals.insert(id.to_owned(), Proposal::new(id, choice_type, start_time, end_time));
-        //.push(Proposal::new(id, choice_type, start_time, end_time));
+    
+    let mut prop = Proposal::new(choice_type, start_time, end_time);
+    PROPOSALS.save(deps.storage, &id, &prop);
+    //state
+    //    .proposals
+    //    .push(Proposal::new(id, choice_type, start_time, end_time));
     /*
     match state.state {
         ContractState::Init => {
@@ -81,8 +83,9 @@ pub fn try_add_proposal(
     }*/
 
     config(deps.storage).save(&state)?;
-    println!("try add proposal state: {:?}", state);
-
+    
+    let prop = PROPOSALS.load(deps.storage, &id)?;
+    println!("try add proposal state: {:?}", prop);
     Ok(Response::new())
 }
 

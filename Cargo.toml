@@ -25,9 +25,11 @@ overflow-checks = true
 
 [dependencies]
 chrono = "0.4.23"
-cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
-cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
+cosmwasm-std = "1.1.6"
+cosmwasm-storage = "1.1.6"
+cw-storage-plus = "0.16"
 schemars = "0.8.11"
-serde = { version = "=1.0.103", default-features = false, features = ["derive"] }
+serde = { version = "=1.0.147", default-features = false, features = ["derive"] }
+signature = "1.3.2"
 syn = "1.0.103"
 thiserror = "1.0"
