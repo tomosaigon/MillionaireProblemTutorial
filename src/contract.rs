@@ -1,12 +1,12 @@
-use std::cmp::max;
 use cosmwasm_std::{
-    entry_point, to_binary, Deps, DepsMut, Env,
-    MessageInfo, QueryResponse, Response, StdError, StdResult
+    entry_point, to_binary, Deps, DepsMut, Env, MessageInfo, QueryResponse, Response, StdError,
+    StdResult,
 };
+use std::cmp::max;
 
-use crate::errors::{CustomContractError};
+use crate::errors::CustomContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RicherResponse};
-use crate::state::{config, config_read, ContractState, Millionaire, State};
+use crate::state::{config, config_read, ContractState, Millionaire, Proposal, State};
 
 #[entry_point]
 pub fn instantiate(
@@ -15,7 +15,6 @@ pub fn instantiate(
     _info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> StdResult<Response> {
-
     let state = State::default();
     config(deps.storage).save(&state)?;
 
@@ -31,7 +30,7 @@ pub fn execute(
 ) -> Result<Response, CustomContractError> {
     match msg {
         ExecuteMsg::SubmitNetWorth { name, worth } => try_submit_net_worth(deps, name, worth),
-        ExecuteMsg::Reset {  } => try_reset(deps),
+        ExecuteMsg::Reset {} => try_reset(deps),
     }
 }
 
@@ -42,10 +41,42 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
     }
 }
 
+pub fn try_add_proposal(
+    deps: DepsMut,
+    id: String,
+    choice_type: u8,
+    start_time: Date,
+    end_time: Date,
+) -> Result<Response, CustomContractError> {
+    let mut state = config(deps.storage).load()?;
+
+    state
+        .proposals
+        .push(Proposal::new(id, choice_type, start_time, end_time));
+    /*
+    match state.state {
+        ContractState::Init => {
+            state.player1 = Millionaire::new(name, worth);
+            state.state = ContractState::Got1;
+        }
+        ContractState::Got1 => {
+            state.player2 = Millionaire::new(name, worth);
+            state.state = ContractState::Done;
+        }
+        ContractState::Done => {
+            return Err(CustomContractError::AlreadyAddedBothMillionaires);
+        }
+    }*/
+
+    config(deps.storage).save(&state)?;
+
+    Ok(Response::new())
+}
+
 pub fn try_submit_net_worth(
     deps: DepsMut,
     name: String,
-    worth: u64
+    worth: u64,
 ) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
 
@@ -68,23 +99,22 @@ pub fn try_submit_net_worth(
     Ok(Response::new())
 }
 
-pub fn try_reset(
-    deps: DepsMut,
-) -> Result<Response, CustomContractError> {
+pub fn try_reset(deps: DepsMut) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
 
     state.state = ContractState::Init;
     config(deps.storage).save(&state)?;
 
-    Ok(Response::new()
-        .add_attribute("action", "reset state"))
+    Ok(Response::new().add_attribute("action", "reset state"))
 }
 
 fn query_who_is_richer(deps: Deps) -> StdResult<RicherResponse> {
     let state = config_read(deps.storage).load()?;
 
     if state.state != ContractState::Done {
-        return Err(StdError::generic_err("Can't tell who is richer unless we get 2 data points!"));
+        return Err(StdError::generic_err(
+            "Can't tell who is richer unless we get 2 data points!",
+        ));
     }
 
     if state.player1 == state.player2 {
@@ -109,8 +139,8 @@ fn query_who_is_richer(deps: Deps) -> StdResult<RicherResponse> {
 mod tests {
     use super::*;
 
-    use cosmwasm_std::testing::{mock_env, mock_info, mock_dependencies};
     use cosmwasm_std::coins;
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 
     #[test]
     fn proper_instantialization() {
@@ -135,8 +165,14 @@ mod tests {
         let info = mock_info("creator", &coins(2, "token"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
-        let msg_player1 = ExecuteMsg::SubmitNetWorth {worth: 1, name: "alice".to_string()};
-        let msg_player2 = ExecuteMsg::SubmitNetWorth {worth: 2, name: "bob".to_string()};
+        let msg_player1 = ExecuteMsg::SubmitNetWorth {
+            worth: 1,
+            name: "alice".to_string(),
+        };
+        let msg_player2 = ExecuteMsg::SubmitNetWorth {
+            worth: 2,
+            name: "bob".to_string(),
+        };
 
         let info = mock_info("creator", &[]);
 
@@ -147,7 +183,6 @@ mod tests {
         let value = query_who_is_richer(deps.as_ref()).unwrap();
 
         assert_eq!(&value.richer, "bob")
-
     }
 
     #[test]
@@ -158,7 +193,10 @@ mod tests {
         let info = mock_info("creator", &coins(2, "token"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
-        let msg_player1 = ExecuteMsg::SubmitNetWorth {worth: 1, name: "alice".to_string()};
+        let msg_player1 = ExecuteMsg::SubmitNetWorth {
+            worth: 1,
+            name: "alice".to_string(),
+        };
 
         let info = mock_info("creator", &[]);
         let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player1).unwrap();
@@ -166,8 +204,14 @@ mod tests {
         let reset_msg = ExecuteMsg::Reset {};
         let _res = execute(deps.as_mut(), mock_env(), info.clone(), reset_msg).unwrap();
 
-        let msg_player2 = ExecuteMsg::SubmitNetWorth {worth: 2, name: "bob".to_string()};
-        let msg_player3 = ExecuteMsg::SubmitNetWorth {worth: 3, name: "carol".to_string()};
+        let msg_player2 = ExecuteMsg::SubmitNetWorth {
+            worth: 2,
+            name: "bob".to_string(),
+        };
+        let msg_player3 = ExecuteMsg::SubmitNetWorth {
+            worth: 3,
+            name: "carol".to_string(),
+        };
 
         let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player2).unwrap();
         let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player3).unwrap();
@@ -175,5 +219,6 @@ mod tests {
         // it worked, let's query the state
         let value = query_who_is_richer(deps.as_ref()).unwrap();
 
-        assert_eq!(&value.richer, "carol")    }
+        assert_eq!(&value.richer, "carol")
+    }
 }
