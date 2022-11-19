@@ -54,7 +54,7 @@ pub enum ContractState {
     Done,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
 pub struct State {
     pub state: ContractState,
     pub player1: Millionaire,
