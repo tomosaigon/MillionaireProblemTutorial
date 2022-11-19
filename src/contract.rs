@@ -31,6 +31,7 @@ pub fn execute(
     match msg {
         ExecuteMsg::SubmitNetWorth { name, worth } => try_submit_net_worth(deps, name, worth),
         ExecuteMsg::Reset {} => try_reset(deps),
+        ExecuteMsg::SubmitProposal { id, choice_type, start_time, end_time } => try_add_proposal(deps, id, choice_type, start_time, end_time)
     }
 }
 
