@@ -3,6 +3,7 @@ use std::{cmp::Ordering, collections::hash_map::DefaultHasher};
 use cosmwasm_std::Storage;
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 
+//use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 const CONFIG_KEY: &[u8] = b"config";
@@ -56,6 +57,8 @@ pub enum ContractState {
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
 pub struct State {
+    pub count: i32,
+    pub count_static: i32,
     pub state: ContractState,
     pub player1: Millionaire,
     pub player2: Millionaire,

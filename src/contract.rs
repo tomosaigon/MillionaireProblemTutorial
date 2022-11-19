@@ -5,7 +5,7 @@ use cosmwasm_std::{
 use std::cmp::max;
 
 use crate::errors::CustomContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RicherResponse};
+use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RicherResponse};
 use crate::state::{config, config_read, ContractState, Millionaire, Proposal, State};
 
 #[entry_point]
@@ -15,7 +15,8 @@ pub fn instantiate(
     _info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> StdResult<Response> {
-    let state = State::default();
+    let mut state = State::default();
+    state.count_static = 1337;
     config(deps.storage).save(&state)?;
 
     Ok(Response::default())
@@ -29,9 +30,15 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, CustomContractError> {
     match msg {
+        ExecuteMsg::Increment {} => try_increment(deps),
         ExecuteMsg::SubmitNetWorth { name, worth } => try_submit_net_worth(deps, name, worth),
         ExecuteMsg::Reset {} => try_reset(deps),
-        ExecuteMsg::SubmitProposal { id, choice_type, start_time, end_time } => try_add_proposal(deps, id, choice_type, start_time, end_time)
+        ExecuteMsg::SubmitProposal {
+            id,
+            choice_type,
+            start_time,
+            end_time,
+        } => try_add_proposal(deps, id, choice_type, start_time, end_time),
     }
 }
 
@@ -39,6 +46,8 @@ pub fn execute(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
     match msg {
         QueryMsg::WhoIsRicher {} => to_binary(&query_who_is_richer(deps)?),
+        QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
+        QueryMsg::GetCountStatic {} => to_binary(&query_count_static(deps)?),
     }
 }
 
@@ -72,6 +81,22 @@ pub fn try_add_proposal(
     config(deps.storage).save(&state)?;
 
     Ok(Response::new())
+}
+
+pub fn try_increment(deps: DepsMut) -> Result<Response, CustomContractError> {
+    let mut state = config(deps.storage).load()?;
+    //let state = config_read(deps.storage).load()?;
+    state.count += 1;
+    state.count_static = 666;
+    config(deps.storage).save(&state)?;
+    /*STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
+        state.count += 1;
+        Ok(state)
+    })?;*/
+
+    Ok(Response::new())
+    //Ok(Response::new().add_attribute("method", "try_increment"))
+    //return Err(CustomContractError::AlreadyAddedBothMillionaires);
 }
 
 pub fn try_submit_net_worth(
@@ -109,6 +134,20 @@ pub fn try_reset(deps: DepsMut) -> Result<Response, CustomContractError> {
     Ok(Response::new().add_attribute("action", "reset state"))
 }
 
+fn query_count(deps: Deps) -> StdResult<CountResponse> {
+    //let state = STATE.load(deps.storage)?;
+    let state = config_read(deps.storage).load()?;
+    // Load the current contract state
+    Ok(CountResponse { count: state.count })
+    // Form and return a CountResponse
+}
+fn query_count_static(deps: Deps) -> StdResult<CountResponse> {
+    //let state = STATE.load(deps.storage)?;
+    let state = config_read(deps.storage).load()?;
+    // Load the current contract state
+    Ok(CountResponse { count: state.count_static })
+    // Form and return a CountResponse
+}
 fn query_who_is_richer(deps: Deps) -> StdResult<RicherResponse> {
     let state = config_read(deps.storage).load()?;
 
