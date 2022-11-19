@@ -2,40 +2,43 @@ use std::{cmp::Ordering /* , collections::hash_map::DefaultHasher */ };
 
 use cosmwasm_std::Storage;
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
+use cw_storage_plus::Map;
 
 //use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 const CONFIG_KEY: &[u8] = b"config";
+//const ALLOWANCE: Map<(&str, &str), u64> = Map::new("allow");
+//const PEOPLE: Map<&str, String> = Map::new("people");
+pub const PROPOSALS: Map<&str, Proposal> = Map::new("proposals");
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct Proposal {
-    id: String,
+    //id: String,
     // maybe not needed: active: bool,
     choice_type: u8,
     start_time: u32,
     end_time: u32,
+    //voters: HashMap<String, String>
 }
 
 impl Proposal {
     /// Constructor function. Takes input parameters and initializes a struct containing
     /// those items
     // TODO   only DAO admins can  create new proposals
-    pub fn new(id: String, choice_type: u8, start_time: u32, end_time: u32) -> Proposal {
+    pub fn new(choice_type: u8, start_time: u32, end_time: u32) -> Proposal {
         return Proposal {
-            id: id,
+            //id: id,
             choice_type: choice_type,
             start_time: start_time,
             end_time: end_time,
+            //voters: HashMap::new()
         };
     }
 
-    /// Viewer function to read the private member of the Millionaire struct.
-    /// We could make the member public instead and access it directly if we wanted to simplify
-    /// access patterns
-    pub fn name(&self) -> &String {
-        &self.id
-    }
+    //pub fn name(&self) -> &String {
+    //    &self.id
+    //}
     // TODO returrn a struct? return "self"?
     // pub fn info(&self) -> &Proposal {
     //     &self.id,
@@ -62,7 +65,9 @@ pub struct State {
     pub state: ContractState,
     pub player1: Millionaire,
     pub player2: Millionaire,
-    pub proposals: Vec<Proposal>,
+    //pub proposals: Vec<Proposal>,
+    //pub map1: Map<u8, u8>,
+    //pub proposals2: Map<String, String>,
 }
 
 impl Default for ContractState {
