@@ -79,6 +79,7 @@ pub fn try_add_proposal(
     }*/
 
     config(deps.storage).save(&state)?;
+    println!("try add proposal state: {:?}", state);
 
     Ok(Response::new())
 }
@@ -145,7 +146,9 @@ fn query_count_static(deps: Deps) -> StdResult<CountResponse> {
     //let state = STATE.load(deps.storage)?;
     let state = config_read(deps.storage).load()?;
     // Load the current contract state
-    Ok(CountResponse { count: state.count_static })
+    Ok(CountResponse {
+        count: state.count_static,
+    })
     // Form and return a CountResponse
 }
 fn query_who_is_richer(deps: Deps) -> StdResult<RicherResponse> {
@@ -195,6 +198,35 @@ mod tests {
 
         // it worked, let's query the state
         let _ = query_who_is_richer(deps.as_ref()).unwrap_err();
+    }
+
+    #[test]
+    fn try_add_proposal() {
+        let mut deps = mock_dependencies();
+
+        let msg = InstantiateMsg {};
+        let info = mock_info("creator", &coins(1000, "earth"));
+        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        let proposal1 = ExecuteMsg::SubmitProposal {
+            id: String::from("Hello"),
+            // maybe not needed: active: bool,
+            choice_type: 1,
+            start_time: 1,
+            end_time: 1,
+        };
+
+        let proposal2 = ExecuteMsg::SubmitProposal {
+            id: String::from("Hello2"),
+            // maybe not needed: active: bool,
+            choice_type: 2,
+            start_time: 2,
+            end_time: 2,
+        };
+
+        let info = mock_info("creator", &[]);
+        let _res = execute(deps.as_mut(), mock_env(), info.clone(), proposal1).unwrap();
+        let _res = execute(deps.as_mut(), mock_env(), info, proposal2).unwrap();
     }
 
     #[test]
