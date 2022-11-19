@@ -1,4 +1,5 @@
 use std::{cmp::Ordering /* , collections::hash_map::DefaultHasher */ };
+use std::collections::HashMap;
 
 use cosmwasm_std::Storage;
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
@@ -15,6 +16,7 @@ pub struct Proposal {
     choice_type: u8,
     start_time: u32,
     end_time: u32,
+    voters: HashMap<String, String>
 }
 
 impl Proposal {
@@ -27,6 +29,7 @@ impl Proposal {
             choice_type: choice_type,
             start_time: start_time,
             end_time: end_time,
+            voters: HashMap::new()
         };
     }
 
@@ -62,7 +65,7 @@ pub struct State {
     pub state: ContractState,
     pub player1: Millionaire,
     pub player2: Millionaire,
-    pub proposals: Vec<Proposal>,
+    pub proposals: HashMap<String, Proposal>,
 }
 
 impl Default for ContractState {

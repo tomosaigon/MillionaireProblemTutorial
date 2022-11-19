@@ -3,6 +3,7 @@ use cosmwasm_std::{
     StdResult,
 };
 use std::cmp::max;
+use std::collections::HashMap;
 
 use crate::errors::CustomContractError;
 use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RicherResponse};
@@ -18,6 +19,7 @@ pub fn instantiate(
     let mut state = State::default();
     state.count_static = 1337;
     config(deps.storage).save(&state)?;
+    println!("{:?}", state);
 
     Ok(Response::default())
 }
@@ -61,8 +63,8 @@ pub fn try_add_proposal(
     let mut state = config(deps.storage).load()?;
 
     state
-        .proposals
-        .push(Proposal::new(id, choice_type, start_time, end_time));
+        .proposals.insert(id.to_owned(), Proposal::new(id, choice_type, start_time, end_time));
+        //.push(Proposal::new(id, choice_type, start_time, end_time));
     /*
     match state.state {
         ContractState::Init => {
@@ -208,25 +210,25 @@ mod tests {
         let info = mock_info("creator", &coins(1000, "earth"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
-        let proposal1 = ExecuteMsg::SubmitProposal {
-            id: String::from("Hello"),
-            // maybe not needed: active: bool,
-            choice_type: 1,
-            start_time: 1,
-            end_time: 1,
-        };
+        // let proposal1 = ExecuteMsg::SubmitProposal {
+        //     id: String::from("Hello"),
+        //     // maybe not needed: active: bool,
+        //     choice_type: 1,
+        //     start_time: 1,
+        //     end_time: 1,
+        // };
 
-        let proposal2 = ExecuteMsg::SubmitProposal {
-            id: String::from("Hello2"),
-            // maybe not needed: active: bool,
-            choice_type: 2,
-            start_time: 2,
-            end_time: 2,
-        };
+        // let proposal2 = ExecuteMsg::SubmitProposal {
+        //     id: String::from("Hello2"),
+        //     // maybe not needed: active: bool,
+        //     choice_type: 2,
+        //     start_time: 2,
+        //     end_time: 2,
+        // };
 
-        let info = mock_info("creator", &[]);
-        let _res = execute(deps.as_mut(), mock_env(), info.clone(), proposal1).unwrap();
-        let _res = execute(deps.as_mut(), mock_env(), info, proposal2).unwrap();
+        // let info = mock_info("creator", &[]);
+        // let _res = execute(deps.as_mut(), mock_env(), info.clone(), proposal1).unwrap();
+        // let _res = execute(deps.as_mut(), mock_env(), info, proposal2).unwrap();
     }
 
     #[test]
