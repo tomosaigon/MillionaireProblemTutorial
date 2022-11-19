@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::hash_map::DefaultHasher};
+use std::{cmp::Ordering /* , collections::hash_map::DefaultHasher */ };
 
 use cosmwasm_std::Storage;
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
