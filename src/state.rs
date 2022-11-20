@@ -16,8 +16,8 @@ pub struct ProposalVoter {
     proposal_id: String, // TODO prop id and eth addr are the map key
     eth_address: String,
     scrt_address: String,
-    power: Uint256,
-    has_voted: bool,
+    pub power: Uint256,
+    pub has_voted: bool,
 }
 
 impl ProposalVoter {
@@ -46,21 +46,21 @@ impl ProposalVoter {
 pub struct Proposal {
     //id: String,
     // maybe not needed: active: bool,
-    choice_count: u8,
+    pub choice_count: u8,
     start_time: u32,
     end_time: u32,
-    counters: Vec<u32>,
+    pub counters: Vec<Uint256>,
 }
 
 impl Proposal {
     // TODO   only DAO admins can  create new proposals
     pub fn new(choice_count: u8, start_time: u32, end_time: u32) -> Proposal {
+        let zero = Uint256::from(0u32);
         return Proposal {
-            //id: id,
             choice_count: choice_count,
             start_time: start_time,
             end_time: end_time,
-            counters: vec![0; choice_count.into()],
+            counters: vec![zero; choice_count.into()],
         };
     }
 
