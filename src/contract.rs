@@ -56,7 +56,6 @@ pub fn execute(
     }
 }
 
-#[entry_point]
 pub fn try_cast_vote(
     deps: DepsMut,
     env: Env,
@@ -108,7 +107,6 @@ pub fn try_cast_vote(
     Ok(Response::new())
 }
 
-#[entry_point]
 pub fn try_register_proposal_voter(
     deps: DepsMut,
     proposal_id: &str,

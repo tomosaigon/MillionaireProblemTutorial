@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use cosmwasm_std::{Storage, Uint256, Timestamp };
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 use cw_storage_plus::Map;
