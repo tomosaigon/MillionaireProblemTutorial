@@ -22,14 +22,14 @@ pub enum ExecuteMsg {
     },
     RegisterProposalVoter {
         proposal_id: String,
-        eth_address: String,
-        scrt_address: String,
+        eth_addr: String,
+        scrt_addr: String,
         power: Uint256,
     },
     CastVote {
         proposal_id: String,
-        eth_address: String,
-        scrt_address: String,
+        eth_addr: String,
+        scrt_addr: String,
         choice: u8,
     }
 }

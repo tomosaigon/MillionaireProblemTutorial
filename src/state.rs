@@ -14,8 +14,8 @@ pub const PROPOSALVOTERS: Map<&str, ProposalVoter> = Map::new("proposalvoters");
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct ProposalVoter {
     proposal_id: String, // TODO prop id and eth addr are the map key
-    eth_address: String,
-    scrt_address: String,
+    eth_addr: String,
+    scrt_addr: String,
     pub power: Uint256,
     pub has_voted: bool,
 }
@@ -26,15 +26,15 @@ impl ProposalVoter {
     // TODO   only DAO admins can  register voters for proposals
     pub fn register(
         proposal_id: String,
-        eth_address: String,
-        scrt_address: String,
+        eth_addr: String,
+        scrt_addr: String,
         power: Uint256,
     ) -> ProposalVoter {
         // TODO check if already registered
         return ProposalVoter {
             proposal_id: proposal_id,
-            eth_address: eth_address,
-            scrt_address: scrt_address,
+            eth_addr: eth_addr,
+            scrt_addr: scrt_addr,
             power: power,
             has_voted: false,
         };
@@ -88,6 +88,7 @@ pub enum ContractState {
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
 pub struct State {
+    pub admin_addr: String,
     pub count: i32,
     pub count_static: i32,
     pub state: ContractState,

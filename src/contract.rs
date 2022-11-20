@@ -16,10 +16,11 @@ use crate::state::{
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> StdResult<Response> {
     let mut state = State::default();
+    state.admin_addr = info.sender.to_string();
     state.count_static = 1337;
     config(deps.storage).save(&state)?;
     println!("{:?}", state);
@@ -43,19 +44,19 @@ pub fn execute(
             choice_count,
             start_time,
             end_time,
-        } => try_add_proposal(deps, id, choice_count, start_time, end_time),
+        } => try_add_proposal(deps, info, id, choice_count, start_time, end_time),
         ExecuteMsg::RegisterProposalVoter {
             proposal_id,
-            eth_address,
-            scrt_address,
+            eth_addr,
+            scrt_addr,
             power,
-        } => try_register_proposal_voter(deps, &proposal_id, &eth_address, scrt_address, power),
+        } => try_register_proposal_voter(deps, &proposal_id, &eth_addr, scrt_addr, power),
         ExecuteMsg::CastVote {
             proposal_id,
-            eth_address,
-            scrt_address,
+            eth_addr,
+            scrt_addr,
             choice,
-        } => try_cast_vote(deps, env, info, &proposal_id, &eth_address, scrt_address, choice),
+        } => try_cast_vote(deps, env, info, &proposal_id, &eth_addr, scrt_addr, choice),
     }
 }
 
@@ -74,17 +75,17 @@ pub fn try_cast_vote(
     env: Env,
     info: MessageInfo,
     proposal_id: &str,
-    eth_address: &str,
-    scrt_address: String,
+    eth_addr: &str,
+    scrt_addr: String,
     choice: u8,
 ) -> Result<Response, CustomContractError> {
     // TODO check that sender is owner
     // TODO cheeck that proposal_id exists, and is not expired
-    // TODO store a signature from eth address saying secret address that anyone can verify
+    // TODO store a signature from eth addr saying secret addr that anyone can verify
     let mut id = String::new();
     id.push_str(proposal_id);
     id.push_str("_");
-    id.push_str(&eth_address);
+    id.push_str(&eth_addr);
     println!("id in vote {:?}", id);
 
     // XXX breaks test
@@ -110,7 +111,7 @@ pub fn try_cast_vote(
         return Err(CustomContractError::BadChoice);
     }
 
-    println!("compare sender {:?} with scrt_addr {:?}", info.sender.to_string(), scrt_address);
+    println!("compare sender {:?} with scrt_addr {:?}", info.sender.to_string(), scrt_addr);
     println!("use power {:?}", _pv.power);
     prop.counters[choice as usize] += _pv.power;
     println!("not sorted {:?}", prop.counters);
@@ -124,23 +125,23 @@ pub fn try_cast_vote(
 pub fn try_register_proposal_voter(
     deps: DepsMut,
     proposal_id: &str,
-    eth_address: &str,
-    scrt_address: String,
+    eth_addr: &str,
+    scrt_addr: String,
     power: Uint256,
 ) -> Result<Response, CustomContractError> {
     let pv = ProposalVoter::register(
         proposal_id.to_owned(),
-        eth_address.to_owned(),
-        scrt_address,
+        eth_addr.to_owned(),
+        scrt_addr,
         power,
     );
     // TODO check that sender is owner
     // TODO cheeck that proposal_id exists, and is not expired
-    // TODO store a signature from eth address saying secret address that anyone can verify
+    // TODO store a signature from eth addr saying secret addr that anyone can verify
     let mut id = String::new();
     id.push_str(proposal_id);
     id.push_str("_");
-    id.push_str(&eth_address);
+    id.push_str(&eth_addr);
 
     // XXX breaks test
     //let mut _pv = PROPOSALVOTERS.load(deps.storage, &id)?;
@@ -154,11 +155,14 @@ pub fn try_register_proposal_voter(
 
 pub fn try_add_proposal(
     deps: DepsMut,
+    info: MessageInfo,
     id: String,
     choice_count: u8,
     start_time:Timestamp,
     end_time: Timestamp,
 ) -> Result<Response, CustomContractError> {
+    let state = config(deps.storage).load()?;
+    println!("check that proposal submitter {:?} is contract admin {:?}", info.sender, state.admin_addr);
     let prop = Proposal::new(choice_count, start_time, end_time);
     // XXX test changing counter
     //prop.counters[1] += Uint256::from(666u32);
@@ -317,7 +321,7 @@ mod tests {
         let mut deps = mock_dependencies();
 
         let msg = InstantiateMsg {};
-        let info = mock_info("seccretadmin", &coins(1000, "earth"));
+        let info = mock_info("secretadmin", &coins(1000, "earth"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         let proposal = ExecuteMsg::SubmitProposal {
@@ -332,8 +336,8 @@ mod tests {
 
         let pv1 = ExecuteMsg::RegisterProposalVoter {
             proposal_id: String::from("prop1"),
-            eth_address: String::from("0x1234"),
-            scrt_address: String::from("secretvoter1"),
+            eth_addr: String::from("0x1234"),
+            scrt_addr: String::from("secretvoter1"),
             power: Uint256::from(10u128),
         };
 
@@ -342,14 +346,14 @@ mod tests {
 
         let v1 = ExecuteMsg::CastVote {
             proposal_id: String::from("prop1"),
-            eth_address: String::from("0x1234"),
-            scrt_address: String::from("secretvoter1"),
+            eth_addr: String::from("0x1234"),
+            scrt_addr: String::from("secretvoter1"),
             choice: 1u8,
         };
         let v1again = ExecuteMsg::CastVote {
             proposal_id: String::from("prop1"),
-            eth_address: String::from("0x1234"),
-            scrt_address: String::from("secretaaaa1"),
+            eth_addr: String::from("0x1234"),
+            scrt_addr: String::from("secretaaaa1"),
             choice: 1u8,
         };
 
@@ -385,8 +389,8 @@ mod tests {
 
         let pv1 = ExecuteMsg::RegisterProposalVoter {
             proposal_id: String::from("p1"),
-            eth_address: String::from("0x1234"),
-            scrt_address: String::from("secretaaaa1"),
+            eth_addr: String::from("0x1234"),
+            scrt_addr: String::from("secretaaaa1"),
             power: Uint256::from(10u128),
         };
 
