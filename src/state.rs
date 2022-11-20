@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use cosmwasm_std::{Storage, Uint256};
+use cosmwasm_std::{Storage, Uint256, Timestamp};
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 use cw_storage_plus::Map;
 
@@ -47,14 +47,14 @@ pub struct Proposal {
     //id: String,
     // maybe not needed: active: bool,
     pub choice_count: u8,
-    start_time: u32,
-    end_time: u32,
+    start_time: Timestamp,
+    end_time: Timestamp,
     pub counters: Vec<Uint256>,
 }
 
 impl Proposal {
     // TODO   only DAO admins can  create new proposals
-    pub fn new(choice_count: u8, start_time: u32, end_time: u32) -> Proposal {
+    pub fn new(choice_count: u8, start_time: Timestamp, end_time: Timestamp) -> Proposal {
         let zero = Uint256::from(0u32);
         return Proposal {
             choice_count: choice_count,

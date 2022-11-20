@@ -1,7 +1,7 @@
 use cosmwasm_std::Uint256;
 use cosmwasm_std::{
     entry_point, to_binary, Deps, DepsMut, Env, MessageInfo, QueryResponse, Response, StdError,
-    StdResult,
+    StdResult, Timestamp
 };
 use std::cmp::max;
 
@@ -150,8 +150,8 @@ pub fn try_add_proposal(
     deps: DepsMut,
     id: String,
     choice_count: u8,
-    start_time: u32,
-    end_time: u32,
+    start_time:Timestamp,
+    end_time: Timestamp,
 ) -> Result<Response, CustomContractError> {
     let mut prop = Proposal::new(choice_count, start_time, end_time);
     // XXX test changing counter
@@ -317,8 +317,8 @@ mod tests {
         let proposal = ExecuteMsg::SubmitProposal {
             id: String::from("prop1"),
             choice_count: 4u8,
-            start_time: 11100,
-            end_time: 12000,
+            start_time: Timestamp::from_nanos(1_000_000_101),
+            end_time: Timestamp::from_nanos(1_000_000_202),
         };
 
         let info = mock_info("creator", &[]);
@@ -370,8 +370,8 @@ mod tests {
         let proposal = ExecuteMsg::SubmitProposal {
             id: String::from("prop1"),
             choice_count: 4,
-            start_time: 11100,
-            end_time: 12000,
+            start_time: Timestamp::from_nanos(1_000_000_101),
+            end_time: Timestamp::from_nanos(1_000_000_202),
         };
 
         let info = mock_info("creator", &[]);
@@ -400,16 +400,16 @@ mod tests {
             id: String::from("Hello"),
             // maybe not needed: active: bool,
             choice_count: 2,
-            start_time: 1,
-            end_time: 1,
+            start_time: Timestamp::from_nanos(1_000_000_101),
+            end_time: Timestamp::from_nanos(1_000_000_202),
         };
 
         let proposal2 = ExecuteMsg::SubmitProposal {
             id: String::from("Hello2"),
             // maybe not needed: active: bool,
             choice_count: 4,
-            start_time: 2,
-            end_time: 2,
+            start_time: Timestamp::from_nanos(1_000_000_101),
+            end_time: Timestamp::from_nanos(1_000_000_202),
         };
 
         let info = mock_info("creator", &[]);

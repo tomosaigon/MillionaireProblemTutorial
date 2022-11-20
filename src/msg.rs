@@ -1,6 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{Storage, Uint256};
+use cosmwasm_std::{Storage, Uint256, Timestamp};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {}
@@ -17,8 +17,8 @@ pub enum ExecuteMsg {
     SubmitProposal {
         id: String,
         choice_count: u8,
-        start_time: u32,
-        end_time: u32,
+        start_time: Timestamp,
+        end_time: Timestamp,
     },
     RegisterProposalVoter {
         proposal_id: String,
