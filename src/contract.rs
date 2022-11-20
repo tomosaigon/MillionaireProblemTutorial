@@ -155,7 +155,7 @@ pub fn try_add_proposal(
 ) -> Result<Response, CustomContractError> {
     let mut prop = Proposal::new(choice_count, start_time, end_time);
     // XXX test changing counter
-    prop.counters[1] += Uint256::from(666u32);
+    //prop.counters[1] += Uint256::from(666u32);
     let _res = PROPOSALS.save(deps.storage, &id, &prop);
     let prop = PROPOSALS.load(deps.storage, &id)?;
     println!("try add proposal state: {:?}", prop);
@@ -261,11 +261,23 @@ fn query_count_vote_results(
 ) -> StdResult<CountResponse> {
     let mut prop = PROPOSALS.load(deps.storage, &proposal_id)?;
 
+    let mut winner_idx = 0;
+    let mut winner_count = Uint256::from(0u32);
+    let mut i = 0;
+    while i < prop.counters.len() {
+        if prop.counters[i] > winner_count {
+            winner_idx = i;
+            winner_count = prop.counters[i];
+        }
+        i += 1;
+    }
+    /* 
     let mut counters_copy = prop.counters.clone();
     counters_copy.sort();
     println!("not sorted {:?}", prop.counters);
     println!("sorted {:?}", counters_copy);
-
+    */
+    println!("winning choice: {:?}, count: {:?}", winner_idx, winner_count);
     Ok(CountResponse {
         count: 123,
     })
