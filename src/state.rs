@@ -89,14 +89,7 @@ pub enum ContractState {
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
 pub struct State {
     pub admin_addr: String,
-    pub count: i32,
-    pub count_static: i32,
     pub state: ContractState,
-    pub player1: Millionaire,
-    pub player2: Millionaire,
-    //pub proposals: Vec<Proposal>,
-    //pub map1: Map<u8, u8>,
-    //pub proposals2: Map<String, String>,
 }
 
 impl Default for ContractState {
@@ -123,45 +116,6 @@ impl From<ContractState> for u8 {
             ContractState::Got1 => 1,
             ContractState::Done => 2,
         }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default, Eq)]
-pub struct Millionaire {
-    name: String,
-    worth: u64,
-}
-
-impl Millionaire {
-    /// Constructor function. Takes input parameters and initializes a struct containing both
-    /// those items
-    pub fn new(name: String, worth: u64) -> Millionaire {
-        return Millionaire { name, worth };
-    }
-
-    /// Viewer function to read the private member of the Millionaire struct.
-    /// We could make the member public instead and access it directly if we wanted to simplify
-    /// access patterns
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-}
-
-impl PartialOrd for Millionaire {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Millionaire {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.worth.cmp(&other.worth)
-    }
-}
-
-impl PartialEq for Millionaire {
-    fn eq(&self, other: &Self) -> bool {
-        self.worth == other.worth
     }
 }
 

@@ -8,12 +8,6 @@ pub struct InstantiateMsg {}
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    Increment {},
-    SubmitNetWorth {
-        name: String,
-        worth: u64,
-    },
-    Reset {},
     SubmitProposal {
         id: String,
         choice_count: u8,
@@ -36,14 +30,6 @@ pub enum ExecuteMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub enum QueryMsg {
-    WhoIsRicher {},
-    GetCount {},
-    GetCountStatic {},
-}
-
-// We define a custom struct for each query response
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct CountResponse {
     pub count: i32,
 }
