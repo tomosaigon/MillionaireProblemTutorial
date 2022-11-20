@@ -83,6 +83,7 @@ pub fn try_cast_vote(
     id.push_str(proposal_id);
     id.push_str("_");
     id.push_str(&eth_address);
+    println!("id in vote {:?}", id);
 
     // XXX breaks test
     //let mut _pv = PROPOSALVOTERS.load(deps.storage, &id)?;
@@ -97,13 +98,18 @@ pub fn try_cast_vote(
     println!("pv after voting: {:?}", _pv);
 
     let mut prop = PROPOSALS.load(deps.storage, &proposal_id)?;
-    if choice < prop.choice_count {
+    println!("ccccccccccheck {:?} < {:?}", choice, prop.choice_count);
+    if choice >= prop.choice_count {
+        // TODO write real error: invalid choice
         //return Err(CustomContractError::Std);
         return Err(CustomContractError::AlreadyAddedBothMillionaires);
     }
 
+    println!("use power {:?}", _pv.power);
     prop.counters[choice as usize] += _pv.power;
-    let _res = PROPOSALS.save(deps.storage, &id, &prop);
+    println!("not sorted {:?}", prop.counters);
+    let _res = PROPOSALS.save(deps.storage, &proposal_id, &prop);
+    println!("res {:?}", _res);
 
     Ok(Response::new())
 }
@@ -148,6 +154,8 @@ pub fn try_add_proposal(
     end_time: u32,
 ) -> Result<Response, CustomContractError> {
     let mut prop = Proposal::new(choice_count, start_time, end_time);
+    // XXX test changing counter
+    prop.counters[1] += Uint256::from(666u32);
     let _res = PROPOSALS.save(deps.storage, &id, &prop);
     let prop = PROPOSALS.load(deps.storage, &id)?;
     println!("try add proposal state: {:?}", prop);
@@ -247,6 +255,22 @@ fn query_who_is_richer(deps: Deps) -> StdResult<RicherResponse> {
 
     Ok(resp)
 }
+fn query_count_vote_results(
+    deps: DepsMut,
+    proposal_id: &str,
+) -> StdResult<CountResponse> {
+    let mut prop = PROPOSALS.load(deps.storage, &proposal_id)?;
+
+    let mut counters_copy = prop.counters.clone();
+    counters_copy.sort();
+    println!("not sorted {:?}", prop.counters);
+    println!("sorted {:?}", counters_copy);
+
+    Ok(CountResponse {
+        count: 123,
+    })
+    // Form and return a CountResponse
+}
 
 #[cfg(test)]
 mod tests {
@@ -280,7 +304,7 @@ mod tests {
 
         let proposal = ExecuteMsg::SubmitProposal {
             id: String::from("prop1"),
-            choice_count: 4,
+            choice_count: 4u8,
             start_time: 11100,
             end_time: 12000,
         };
@@ -289,7 +313,7 @@ mod tests {
         let _res = execute(deps.as_mut(), mock_env(), info.clone(), proposal).unwrap();
 
         let pv1 = ExecuteMsg::RegisterProposalVoter {
-            proposal_id: String::from("p1"),
+            proposal_id: String::from("prop1"),
             eth_address: String::from("0x1234"),
             scrt_address: String::from("secretaaaa1"),
             power: Uint256::from(10u128),
@@ -299,16 +323,28 @@ mod tests {
         let _res = execute(deps.as_mut(), mock_env(), info.clone(), pv1).unwrap();
 
         let v1 = ExecuteMsg::CastVote {
-            proposal_id: String::from("p1"),
+            proposal_id: String::from("prop1"),
+            eth_address: String::from("0x1234"),
+            scrt_address: String::from("secretaaaa1"),
+            choice: 1u8,
+        };
+        let v1again = ExecuteMsg::CastVote {
+            proposal_id: String::from("prop1"),
             eth_address: String::from("0x1234"),
             scrt_address: String::from("secretaaaa1"),
             choice: 1u8,
         };
 
         let info = mock_info("creator", &[]);
-
+        println!("v1:{:?} info: {:?}", v1, info);
+        let _res = execute(deps.as_mut(), mock_env(), info.clone(), v1);
+        println!("{:?}", _res);
+        let _res = execute(deps.as_mut(), mock_env(), info.clone(), v1again);
+        println!("{:?}", _res);
         // XXX causes panic
         //let _res = execute(deps.as_mut(), mock_env(), info.clone(), v1).unwrap();
+
+        let _vote_res = query_count_vote_results(deps.as_mut(), "prop1");
     }
 
     #[test]
