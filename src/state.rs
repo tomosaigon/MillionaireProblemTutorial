@@ -45,23 +45,21 @@ impl ProposalVoter {
 pub struct Proposal {
     //id: String,
     // maybe not needed: active: bool,
-    choice_type: u8,
+    choice_count: u8,
     start_time: u32,
     end_time: u32,
-    //voters: Map<&str, String>
+    counters: Vec<u32>
 }
 
 impl Proposal {
-    /// Constructor function. Takes input parameters and initializes a struct containing
-    /// those items
     // TODO   only DAO admins can  create new proposals
-    pub fn new(choice_type: u8, start_time: u32, end_time: u32) -> Proposal {
+    pub fn new(choice_count: u8, start_time: u32, end_time: u32) -> Proposal {
         return Proposal {
             //id: id,
-            choice_type: choice_type,
+            choice_count: choice_count,
             start_time: start_time,
             end_time: end_time,
-            //voters: HashMap::new()
+            counters: vec![0; choice_count.into()],
         };
     }
 

@@ -40,10 +40,10 @@ pub fn execute(
         ExecuteMsg::Reset {} => try_reset(deps),
         ExecuteMsg::SubmitProposal {
             id,
-            choice_type,
+            choice_count,
             start_time,
             end_time,
-        } => try_add_proposal(deps, id, choice_type, start_time, end_time),
+        } => try_add_proposal(deps, id, choice_count, start_time, end_time),
         ExecuteMsg::RegisterProposalVoter {
             proposal_id,
             eth_address,
@@ -76,11 +76,15 @@ pub fn try_register_proposal_voter(
         scrt_address,
         power,
     );
+    // TODO check that sender is owner
+    // TODO cheeck that proposal_id exists, and is not expired
+    // TODO store a signature from eth address saying secret address that anyone can verify
     let mut id = String::new();
     id.push_str(proposal_id);
     id.push_str("_");
     id.push_str(&eth_address);
 
+    // XXX breaks test
     //let mut _pv = PROPOSALVOTERS.load(deps.storage, &id)?;
     //println!("empty pv before adding: {:?}", _pv);
     let _res = PROPOSALVOTERS.save(deps.storage, &id, &pv);
@@ -93,11 +97,11 @@ pub fn try_register_proposal_voter(
 pub fn try_add_proposal(
     deps: DepsMut,
     id: String,
-    choice_type: u8,
+    choice_count: u8,
     start_time: u32,
     end_time: u32,
 ) -> Result<Response, CustomContractError> {
-    let mut prop = Proposal::new(choice_type, start_time, end_time);
+    let mut prop = Proposal::new(choice_count, start_time, end_time);
     let _res = PROPOSALS.save(deps.storage, &id, &prop);
     let prop = PROPOSALS.load(deps.storage, &id)?;
     println!("try add proposal state: {:?}", prop);
@@ -247,7 +251,7 @@ mod tests {
         let proposal1 = ExecuteMsg::SubmitProposal {
             id: String::from("Hello"),
             // maybe not needed: active: bool,
-            choice_type: 1,
+            choice_count: 2,
             start_time: 1,
             end_time: 1,
         };
@@ -255,7 +259,7 @@ mod tests {
         let proposal2 = ExecuteMsg::SubmitProposal {
             id: String::from("Hello2"),
             // maybe not needed: active: bool,
-            choice_type: 2,
+            choice_count: 4,
             start_time: 2,
             end_time: 2,
         };

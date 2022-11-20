@@ -16,8 +16,7 @@ pub enum ExecuteMsg {
     Reset {},
     SubmitProposal {
         id: String,
-        // maybe not needed: active: bool,
-        choice_type: u8,
+        choice_count: u8,
         start_time: u32,
         end_time: u32,
     },
