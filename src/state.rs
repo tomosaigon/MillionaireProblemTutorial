@@ -39,6 +39,7 @@ impl ProposalVoter {
             has_voted: false,
         };
     }
+
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
@@ -48,7 +49,7 @@ pub struct Proposal {
     choice_count: u8,
     start_time: u32,
     end_time: u32,
-    counters: Vec<u32>
+    counters: Vec<u32>,
 }
 
 impl Proposal {

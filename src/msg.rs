@@ -26,6 +26,12 @@ pub enum ExecuteMsg {
         scrt_address: String,
         power: Uint256,
     },
+    CastVote {
+        proposal_id: String,
+        eth_address: String,
+        scrt_address: String,
+        choice: u8,
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

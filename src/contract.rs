@@ -9,7 +9,7 @@ use crate::errors::CustomContractError;
 use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RicherResponse};
 use crate::state::{
     config, config_read, ContractState, Millionaire, Proposal, ProposalVoter, State, PROPOSALS,
-    PROPOSALVOTERS,
+    PROPOSALVOTERS
 };
 
 #[entry_point]
@@ -50,6 +50,9 @@ pub fn execute(
             scrt_address,
             power,
         } => try_register_proposal_voter(deps, &proposal_id, &eth_address, scrt_address, power),
+        ExecuteMsg::CastVote { 
+            proposal_id, eth_address, scrt_address, choice 
+        } => try_cast_vote(deps, &proposal_id, &eth_address, scrt_address, choice),
     }
 }
 
@@ -60,6 +63,44 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
         QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
         QueryMsg::GetCountStatic {} => to_binary(&query_count_static(deps)?),
     }
+}
+
+#[entry_point]
+pub fn try_cast_vote(
+    deps: DepsMut,
+    proposal_id: &str,
+    eth_address: &str,
+    scrt_address: String,
+    choice: u8,
+) -> Result<Response, CustomContractError> {
+    /* 
+    let pv = ProposalVoter::register(
+        proposal_id.to_owned(),
+        eth_address.to_owned(),
+        scrt_address,
+        power,
+    );
+    */
+    // TODO check that sender is owner
+    // TODO cheeck that proposal_id exists, and is not expired
+    // TODO store a signature from eth address saying secret address that anyone can verify
+    let mut id = String::new();
+    id.push_str(proposal_id);
+    id.push_str("_");
+    id.push_str(&eth_address);
+
+    // XXX breaks test
+    //let mut _pv = PROPOSALVOTERS.load(deps.storage, &id)?;
+    //println!("empty pv before adding: {:?}", _pv);
+    //let _res = PROPOSALVOTERS.save(deps.storage, &id, &pv);
+    let mut _pv:ProposalVoter = PROPOSALVOTERS.load(deps.storage, &id)?;
+    // TODO check _pv.has_voted == false
+    _pv.has_voted = true;
+    let _res = PROPOSALVOTERS.save(deps.storage, &id, &_pv);
+    //voted(_pv);
+    println!("pv after voting: {:?}", _pv);
+
+    Ok(Response::new())
 }
 
 #[entry_point]
@@ -225,6 +266,39 @@ mod tests {
     }
 
     #[test]
+    fn vote() {
+        let mut deps = mock_dependencies();
+
+        let msg = InstantiateMsg {};
+        let info = mock_info("creator", &coins(1000, "earth"));
+        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        let proposal = ExecuteMsg::SubmitProposal {
+            id: String::from("prop1"),
+            choice_count: 4,
+            start_time: 11100,
+            end_time: 12000,
+        };
+
+        let info = mock_info("creator", &[]);
+        let _res = execute(deps.as_mut(), mock_env(), info.clone(), proposal).unwrap();
+
+        let pv1 = ExecuteMsg::RegisterProposalVoter { 
+            proposal_id: String::from("p1"), eth_address: String::from("0x1234"), scrt_address: String::from("secretaaaa1"), power: Uint256::from(10u128)
+        };
+
+        let info = mock_info("creator", &[]);
+        let _res = execute(deps.as_mut(), mock_env(), info.clone(), pv1).unwrap();
+
+        let v1 = ExecuteMsg::CastVote { 
+            proposal_id: String::from("p1"), eth_address: String::from("0x1234"), scrt_address: String::from("secretaaaa1"), choice: 1u8,
+        };
+
+        let info = mock_info("creator", &[]);
+        let _res = execute(deps.as_mut(), mock_env(), info.clone(), v1).unwrap();
+    }
+
+    #[test]
     fn reg_proposalvoter() {
         let mut deps = mock_dependencies();
 
@@ -232,11 +306,21 @@ mod tests {
         let info = mock_info("creator", &coins(1000, "earth"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
+        let proposal = ExecuteMsg::SubmitProposal {
+            id: String::from("prop1"),
+            choice_count: 4,
+            start_time: 11100,
+            end_time: 12000,
+        };
+
+        let info = mock_info("creator", &[]);
+        let _res = execute(deps.as_mut(), mock_env(), info.clone(), proposal).unwrap();
+
         let pv1 = ExecuteMsg::RegisterProposalVoter { 
             proposal_id: String::from("p1"), eth_address: String::from("0x1234"), scrt_address: String::from("secretaaaa1"), power: Uint256::from(10u128)
         };
 
-        let info = mock_info("creator", &[]);
+        //let info = mock_info("creator", &[]);
         let _res = execute(deps.as_mut(), mock_env(), info.clone(), pv1).unwrap();
     }
 
