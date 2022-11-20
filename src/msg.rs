@@ -1,5 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use cosmwasm_std::{Storage, Uint256};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {}
@@ -20,6 +21,12 @@ pub enum ExecuteMsg {
         start_time: u32,
         end_time: u32,
     },
+    RegisterProposalVoter {
+        proposal_id: String,
+        eth_address: String,
+        scrt_address: String,
+        power: Uint256,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -33,7 +40,7 @@ pub enum QueryMsg {
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct CountResponse {
-  pub count: i32,
+    pub count: i32,
 }
 
 /// We define a custom struct for each query response

@@ -1,13 +1,16 @@
+use cosmwasm_std::Uint256;
 use cosmwasm_std::{
     entry_point, to_binary, Deps, DepsMut, Env, MessageInfo, QueryResponse, Response, StdError,
     StdResult,
 };
 use std::cmp::max;
-use std::collections::HashMap;
 
 use crate::errors::CustomContractError;
 use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RicherResponse};
-use crate::state::{config, config_read, ContractState, Millionaire, Proposal, State, PROPOSALS};
+use crate::state::{
+    config, config_read, ContractState, Millionaire, Proposal, ProposalVoter, State, PROPOSALS,
+    PROPOSALVOTERS,
+};
 
 #[entry_point]
 pub fn instantiate(
@@ -41,6 +44,12 @@ pub fn execute(
             start_time,
             end_time,
         } => try_add_proposal(deps, id, choice_type, start_time, end_time),
+        ExecuteMsg::RegisterProposalVoter {
+            proposal_id,
+            eth_address,
+            scrt_address,
+            power,
+        } => try_register_proposal_voter(deps, &proposal_id, &eth_address, scrt_address, power),
     }
 }
 
@@ -53,6 +62,34 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
     }
 }
 
+#[entry_point]
+pub fn try_register_proposal_voter(
+    deps: DepsMut,
+    proposal_id: &str,
+    eth_address: &str,
+    scrt_address: String,
+    power: Uint256,
+) -> Result<Response, CustomContractError> {
+    let pv = ProposalVoter::register(
+        proposal_id.to_owned(),
+        eth_address.to_owned(),
+        scrt_address,
+        power,
+    );
+    let mut id = String::new();
+    id.push_str(proposal_id);
+    id.push_str("_");
+    id.push_str(&eth_address);
+
+    let mut _pv = PROPOSALVOTERS.load(deps.storage, &id)?;
+    println!("empty pv before adding: {:?}", _pv);
+    PROPOSALVOTERS.save(deps.storage, &id, &pv);
+    _pv = PROPOSALVOTERS.load(deps.storage, &id)?;
+    println!("pv after adding: {:?}", _pv);
+
+    Ok(Response::new())
+}
+
 pub fn try_add_proposal(
     deps: DepsMut,
     id: String,
@@ -61,29 +98,14 @@ pub fn try_add_proposal(
     end_time: u32,
 ) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
-    
+
     let mut prop = Proposal::new(choice_type, start_time, end_time);
     PROPOSALS.save(deps.storage, &id, &prop);
     //state
     //    .proposals
     //    .push(Proposal::new(id, choice_type, start_time, end_time));
-    /*
-    match state.state {
-        ContractState::Init => {
-            state.player1 = Millionaire::new(name, worth);
-            state.state = ContractState::Got1;
-        }
-        ContractState::Got1 => {
-            state.player2 = Millionaire::new(name, worth);
-            state.state = ContractState::Done;
-        }
-        ContractState::Done => {
-            return Err(CustomContractError::AlreadyAddedBothMillionaires);
-        }
-    }*/
-
     config(deps.storage).save(&state)?;
-    
+
     let prop = PROPOSALS.load(deps.storage, &id)?;
     println!("try add proposal state: {:?}", prop);
     Ok(Response::new())
@@ -206,6 +228,22 @@ mod tests {
     }
 
     #[test]
+    fn try_reg_proposalvoter() {
+        let mut deps = mock_dependencies();
+
+        let msg = InstantiateMsg {};
+        let info = mock_info("creator", &coins(1000, "earth"));
+        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        let pv1 = ExecuteMsg::RegisterProposalVoter { 
+            proposal_id: String::from("p1"), eth_address: String::from("0x1234"), scrt_address: String::from("secretaaaa1"), power: Uint256::from(10u128)
+        };
+
+        let info = mock_info("creator", &[]);
+        let _res = execute(deps.as_mut(), mock_env(), info.clone(), pv1).unwrap();
+    }
+
+    #[test]
     fn try_add_proposal() {
         let mut deps = mock_dependencies();
 
@@ -213,25 +251,25 @@ mod tests {
         let info = mock_info("creator", &coins(1000, "earth"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
-        // let proposal1 = ExecuteMsg::SubmitProposal {
-        //     id: String::from("Hello"),
-        //     // maybe not needed: active: bool,
-        //     choice_type: 1,
-        //     start_time: 1,
-        //     end_time: 1,
-        // };
+        let proposal1 = ExecuteMsg::SubmitProposal {
+            id: String::from("Hello"),
+            // maybe not needed: active: bool,
+            choice_type: 1,
+            start_time: 1,
+            end_time: 1,
+        };
 
-        // let proposal2 = ExecuteMsg::SubmitProposal {
-        //     id: String::from("Hello2"),
-        //     // maybe not needed: active: bool,
-        //     choice_type: 2,
-        //     start_time: 2,
-        //     end_time: 2,
-        // };
+        let proposal2 = ExecuteMsg::SubmitProposal {
+            id: String::from("Hello2"),
+            // maybe not needed: active: bool,
+            choice_type: 2,
+            start_time: 2,
+            end_time: 2,
+        };
 
-        // let info = mock_info("creator", &[]);
-        // let _res = execute(deps.as_mut(), mock_env(), info.clone(), proposal1).unwrap();
-        // let _res = execute(deps.as_mut(), mock_env(), info, proposal2).unwrap();
+        let info = mock_info("creator", &[]);
+        let _res = execute(deps.as_mut(), mock_env(), info.clone(), proposal1).unwrap();
+        let _res = execute(deps.as_mut(), mock_env(), info, proposal2).unwrap();
     }
 
     #[test]

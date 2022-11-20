@@ -1,7 +1,6 @@
-use std::{cmp::Ordering /* , collections::hash_map::DefaultHasher */ };
-use std::collections::HashMap;
+use std::cmp::Ordering;
 
-use cosmwasm_std::Storage;
+use cosmwasm_std::{Storage, Uint256};
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 use cw_storage_plus::Map;
 
@@ -9,9 +8,38 @@ use cw_storage_plus::Map;
 use serde::{Deserialize, Serialize};
 
 const CONFIG_KEY: &[u8] = b"config";
-//const ALLOWANCE: Map<(&str, &str), u64> = Map::new("allow");
-//const PEOPLE: Map<&str, String> = Map::new("people");
 pub const PROPOSALS: Map<&str, Proposal> = Map::new("proposals");
+pub const PROPOSALVOTERS: Map<&str, ProposalVoter> = Map::new("proposalvoters");
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+pub struct ProposalVoter {
+    proposal_id: String, // TODO prop id and eth addr are the map key
+    eth_address: String,
+    scrt_address: String,
+    power: Uint256,
+    has_voted: bool,
+}
+
+impl ProposalVoter {
+    /// Constructor function. Takes input parameters and initializes a struct containing
+    /// those items
+    // TODO   only DAO admins can  register voters for proposals
+    pub fn register(
+        proposal_id: String,
+        eth_address: String,
+        scrt_address: String,
+        power: Uint256,
+    ) -> ProposalVoter {
+        // TODO check if already registered
+        return ProposalVoter {
+            proposal_id: proposal_id,
+            eth_address: eth_address,
+            scrt_address: scrt_address,
+            power: power,
+            has_voted: false,
+        };
+    }
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct Proposal {
@@ -20,7 +48,7 @@ pub struct Proposal {
     choice_type: u8,
     start_time: u32,
     end_time: u32,
-    //voters: HashMap<String, String>
+    //voters: Map<&str, String>
 }
 
 impl Proposal {
