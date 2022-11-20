@@ -1,12 +1,4 @@
-# Build results
-/target
-
-# Text file backups
-**/*.rs.bk
-
-# macOS
-.DS_Store
-
-# IDEs
-*.iml
-.idea
+contract.wasm
+contract.wasm.gz
+target
+.gitignore

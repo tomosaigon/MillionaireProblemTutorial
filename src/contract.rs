@@ -81,10 +81,10 @@ pub fn try_register_proposal_voter(
     id.push_str("_");
     id.push_str(&eth_address);
 
+    //let mut _pv = PROPOSALVOTERS.load(deps.storage, &id)?;
+    //println!("empty pv before adding: {:?}", _pv);
+    let _res = PROPOSALVOTERS.save(deps.storage, &id, &pv);
     let mut _pv = PROPOSALVOTERS.load(deps.storage, &id)?;
-    println!("empty pv before adding: {:?}", _pv);
-    PROPOSALVOTERS.save(deps.storage, &id, &pv);
-    _pv = PROPOSALVOTERS.load(deps.storage, &id)?;
     println!("pv after adding: {:?}", _pv);
 
     Ok(Response::new())
@@ -97,15 +97,8 @@ pub fn try_add_proposal(
     start_time: u32,
     end_time: u32,
 ) -> Result<Response, CustomContractError> {
-    let mut state = config(deps.storage).load()?;
-
     let mut prop = Proposal::new(choice_type, start_time, end_time);
-    PROPOSALS.save(deps.storage, &id, &prop);
-    //state
-    //    .proposals
-    //    .push(Proposal::new(id, choice_type, start_time, end_time));
-    config(deps.storage).save(&state)?;
-
+    let _res = PROPOSALS.save(deps.storage, &id, &prop);
     let prop = PROPOSALS.load(deps.storage, &id)?;
     println!("try add proposal state: {:?}", prop);
     Ok(Response::new())
@@ -228,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn try_reg_proposalvoter() {
+    fn reg_proposalvoter() {
         let mut deps = mock_dependencies();
 
         let msg = InstantiateMsg {};
