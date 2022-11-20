@@ -1,11 +1,12 @@
 use cosmwasm_std::Uint256;
 use cosmwasm_std::{
+    to_binary, QueryResponse,
     entry_point, Deps, DepsMut, Env, MessageInfo, Response, StdError,
     StdResult, Timestamp
 };
 
 use crate::errors::CustomContractError;
-use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg };
+use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg };
 use crate::state::{
     config, config_read, ContractState, Proposal, ProposalVoter, State, PROPOSALS,
     PROPOSALVOTERS,
@@ -53,6 +54,13 @@ pub fn execute(
             scrt_addr,
             choice,
         } => try_cast_vote(deps, env, info, &proposal_id, &eth_addr, scrt_addr, choice),
+    }
+}
+
+#[entry_point]
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
+    match msg {
+        QueryMsg::WhoWon {proposal_id} => to_binary(&query_count_vote_results(deps, &proposal_id)?),
     }
 }
 
@@ -158,7 +166,7 @@ pub fn try_add_proposal(
 }
 
 fn query_count_vote_results(
-    deps: DepsMut,
+    deps: Deps,
     proposal_id: &str,
 ) -> StdResult<CountResponse> {
     let prop = PROPOSALS.load(deps.storage, &proposal_id)?;
@@ -180,6 +188,7 @@ fn query_count_vote_results(
     println!("sorted {:?}", counters_copy);
     */
     println!("winning choice: {:?}, count: {:?}", winner_idx, winner_count);
+    // TODO return the winning choice, count in below response
     Ok(CountResponse {
         count: 123,
     })
@@ -258,7 +267,7 @@ mod tests {
         // XXX causes panic
         //let _res = execute(deps.as_mut(), mock_env(), info.clone(), v1).unwrap();
 
-        let _vote_res = query_count_vote_results(deps.as_mut(), "prop1");
+        let _vote_res = query_count_vote_results(deps.as_ref(), "prop1");
     }
 
     #[test]
