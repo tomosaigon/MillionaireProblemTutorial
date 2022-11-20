@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use cosmwasm_std::{Storage, Uint256, Timestamp};
+use cosmwasm_std::{Storage, Uint256, Timestamp };
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 use cw_storage_plus::Map;
 
@@ -47,8 +47,8 @@ pub struct Proposal {
     //id: String,
     // maybe not needed: active: bool,
     pub choice_count: u8,
-    start_time: Timestamp,
-    end_time: Timestamp,
+    pub start_time: Timestamp,
+    pub end_time: Timestamp,
     pub counters: Vec<Uint256>,
 }
 

@@ -30,8 +30,8 @@ pub fn instantiate(
 #[entry_point]
 pub fn execute(
     deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
+    env: Env,
+    info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, CustomContractError> {
     match msg {
@@ -55,7 +55,7 @@ pub fn execute(
             eth_address,
             scrt_address,
             choice,
-        } => try_cast_vote(deps, &proposal_id, &eth_address, scrt_address, choice),
+        } => try_cast_vote(deps, env, info, &proposal_id, &eth_address, scrt_address, choice),
     }
 }
 
@@ -71,6 +71,8 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
 #[entry_point]
 pub fn try_cast_vote(
     deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
     proposal_id: &str,
     eth_address: &str,
     scrt_address: String,
@@ -98,13 +100,17 @@ pub fn try_cast_vote(
     println!("pv after voting: {:?}", _pv);
 
     let mut prop = PROPOSALS.load(deps.storage, &proposal_id)?;
+    println!("check block time {:?} > start {:?}", env.block.time, prop.start_time);
+    if env.block.time < prop.start_time {
+        return Err(CustomContractError::BadVoteTime);
+    }
+    // TODO also check that time < end_time in production
     println!("ccccccccccheck {:?} < {:?}", choice, prop.choice_count);
     if choice >= prop.choice_count {
-        // TODO write real error: invalid choice
-        //return Err(CustomContractError::Std);
-        return Err(CustomContractError::AlreadyAddedBothMillionaires);
+        return Err(CustomContractError::BadChoice);
     }
 
+    println!("compare sender {:?} with scrt_addr {:?}", info.sender.to_string(), scrt_address);
     println!("use power {:?}", _pv.power);
     prop.counters[choice as usize] += _pv.power;
     println!("not sorted {:?}", prop.counters);
@@ -153,7 +159,7 @@ pub fn try_add_proposal(
     start_time:Timestamp,
     end_time: Timestamp,
 ) -> Result<Response, CustomContractError> {
-    let mut prop = Proposal::new(choice_count, start_time, end_time);
+    let prop = Proposal::new(choice_count, start_time, end_time);
     // XXX test changing counter
     //prop.counters[1] += Uint256::from(666u32);
     let _res = PROPOSALS.save(deps.storage, &id, &prop);
@@ -259,7 +265,7 @@ fn query_count_vote_results(
     deps: DepsMut,
     proposal_id: &str,
 ) -> StdResult<CountResponse> {
-    let mut prop = PROPOSALS.load(deps.storage, &proposal_id)?;
+    let prop = PROPOSALS.load(deps.storage, &proposal_id)?;
 
     let mut winner_idx = 0;
     let mut winner_count = Uint256::from(0u32);
@@ -311,7 +317,7 @@ mod tests {
         let mut deps = mock_dependencies();
 
         let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(1000, "earth"));
+        let info = mock_info("seccretadmin", &coins(1000, "earth"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         let proposal = ExecuteMsg::SubmitProposal {
@@ -321,23 +327,23 @@ mod tests {
             end_time: Timestamp::from_nanos(1_000_000_202),
         };
 
-        let info = mock_info("creator", &[]);
+        let info = mock_info("secretadmin", &[]);
         let _res = execute(deps.as_mut(), mock_env(), info.clone(), proposal).unwrap();
 
         let pv1 = ExecuteMsg::RegisterProposalVoter {
             proposal_id: String::from("prop1"),
             eth_address: String::from("0x1234"),
-            scrt_address: String::from("secretaaaa1"),
+            scrt_address: String::from("secretvoter1"),
             power: Uint256::from(10u128),
         };
 
-        let info = mock_info("creator", &[]);
+        let info = mock_info("secretvoter1", &[]);
         let _res = execute(deps.as_mut(), mock_env(), info.clone(), pv1).unwrap();
 
         let v1 = ExecuteMsg::CastVote {
             proposal_id: String::from("prop1"),
             eth_address: String::from("0x1234"),
-            scrt_address: String::from("secretaaaa1"),
+            scrt_address: String::from("secretvoter1"),
             choice: 1u8,
         };
         let v1again = ExecuteMsg::CastVote {
@@ -347,7 +353,7 @@ mod tests {
             choice: 1u8,
         };
 
-        let info = mock_info("creator", &[]);
+        let info = mock_info("secretvoter1", &[]);
         println!("v1:{:?} info: {:?}", v1, info);
         let _res = execute(deps.as_mut(), mock_env(), info.clone(), v1);
         println!("{:?}", _res);

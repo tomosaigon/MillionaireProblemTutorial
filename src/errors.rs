@@ -9,4 +9,8 @@ pub enum CustomContractError {
     // this is whatever we want
     #[error("Custom error #1: Cannot add more than 2 millionaires. Try resetting the contract to add new data")]
     AlreadyAddedBothMillionaires,
+    #[error("Custom error: not in time")]
+    BadVoteTime,
+    #[error("Custom error: invalid choice for range")]
+    BadChoice,
 }
