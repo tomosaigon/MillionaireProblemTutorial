@@ -61,24 +61,7 @@ pub fn try_add_proposal(
     end_time: Timestamp,
 ) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
-
     state.prop = Proposal::new(id, choice_count, start_time, end_time);
-    
-    /*
-    match state.state {
-        ContractState::Init => {
-            state.player1 = Millionaire::new(name, worth);
-            state.state = ContractState::Got1;
-        }
-        ContractState::Got1 => {
-            state.player2 = Millionaire::new(name, worth);
-            state.state = ContractState::Done;
-        }
-        ContractState::Done => {
-            return Err(CustomContractError::AlreadyAddedBothMillionaires);
-        }
-    }*/
-
     config(deps.storage).save(&state)?;
     println!("try add proposal state: {:?}", state);
 
@@ -87,18 +70,10 @@ pub fn try_add_proposal(
 
 pub fn try_increment(deps: DepsMut) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
-    //let state = config_read(deps.storage).load()?;
     state.count += 1;
     state.count_static = 666;
     config(deps.storage).save(&state)?;
-    /*STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
-        state.count += 1;
-        Ok(state)
-    })?;*/
-
     Ok(Response::new())
-    //Ok(Response::new().add_attribute("method", "try_increment"))
-    //return Err(CustomContractError::AlreadyAddedBothMillionaires);
 }
 
 pub fn try_submit_net_worth(
