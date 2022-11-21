@@ -21,7 +21,7 @@ pub fn instantiate(
     _msg: InstantiateMsg,
 ) -> StdResult<Response> {
     let mut state = State::default();
-    state.count_static = 1337;
+    state.count_static = Uint256::from(1337u32);
     config(deps.storage).save(&state)?;
 
     Ok(Response::default())
@@ -135,9 +135,7 @@ pub fn try_add_proposal(
 ) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
     state.prop = Proposal::new(id.clone(), choice_count, start_time, end_time);
-    state
-        .proposals
-        .push(Proposal::new(id, choice_count, start_time, end_time));
+    // XXX state.proposals.push(Proposal::new(id, choice_count, start_time, end_time));
     config(deps.storage).save(&state)?;
     println!("try add proposal state: {:?}", state);
 
@@ -146,8 +144,8 @@ pub fn try_add_proposal(
 
 pub fn try_increment(deps: DepsMut) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
-    state.count += 1;
-    state.count_static = 666;
+    state.count += Uint256::from(1u32); 
+   // state.count_static = 666;
     config(deps.storage).save(&state)?;
     Ok(Response::new())
 }
@@ -266,7 +264,7 @@ fn query_voter_count(
     //proposal_id: &str,
 ) -> StdResult<CountResponse> {
     let state = config_read(deps.storage).load()?;
-    let mut cnt = 0;
+    let mut cnt: u32 = 0;
     if state.voter1.scrt_addr == "" {
     } else {
         if state.voter2.scrt_addr == "" {
@@ -275,7 +273,7 @@ fn query_voter_count(
             cnt = 2;
         }
     }
-    let resp = CountResponse { count: cnt };
+    let resp = CountResponse { count: Uint256::from(cnt) };
     println!("resp {:?}", resp);
     Ok(resp)
 }
