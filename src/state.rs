@@ -1,12 +1,40 @@
 use std::{cmp::Ordering /* , collections::hash_map::DefaultHasher */ };
 
-use cosmwasm_std::{ Storage, Timestamp };
+use cosmwasm_std::{ Storage, Timestamp, Uint256 };
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 
 //use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 const CONFIG_KEY: &[u8] = b"config";
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
+pub struct ProposalVoter {
+    pub proposal_id: String, // TODO prop id and eth addr are the map key
+    pub eth_addr: String,
+    pub scrt_addr: String,
+    pub power: Uint256,
+    pub has_voted: bool,
+}
+
+impl ProposalVoter {
+    pub fn register(
+        proposal_id: String,
+        eth_addr: String,
+        scrt_addr: String,
+        power: Uint256,
+    ) -> ProposalVoter {
+        // TODO check if already registered
+        return ProposalVoter {
+            proposal_id: proposal_id,
+            eth_addr: eth_addr,
+            scrt_addr: scrt_addr,
+            power: power,
+            has_voted: false,
+        };
+    }
+
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
 pub struct Proposal {
@@ -28,23 +56,6 @@ impl Proposal {
             end_time: end_time,
         };
     }
-
-    /// Viewer function to read the private member of the Millionaire struct.
-    /// We could make the member public instead and access it directly if we wanted to simplify
-    /// access patterns
-    pub fn name(&self) -> &String {
-        &self.id
-    }
-    // TODO returrn a struct? return "self"?
-    // pub fn info(&self) -> &Proposal {
-    //     &self.id,
-    //     &self.choice_type,
-    //     &self.start_time,
-    //     &self.end_time
-    // }
-    // pub fn selfinfo(&self) -> Self {
-    //     return &self;
-    // }
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
@@ -57,6 +68,9 @@ pub enum ContractState {
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
 pub struct State {
     pub prop: Proposal,
+    pub voter1: ProposalVoter,
+    pub voter2: ProposalVoter,
+    pub voter3: ProposalVoter,
     pub count: i32,
     pub count_static: i32,
     pub state: ContractState,

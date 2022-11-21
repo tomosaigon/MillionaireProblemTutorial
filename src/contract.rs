@@ -1,13 +1,16 @@
 use cosmwasm_std::{
     entry_point, to_binary, Deps, DepsMut, Env, MessageInfo, QueryResponse, Response, StdError,
-    StdResult,
-    Timestamp
+    StdResult, Timestamp, Uint256,
 };
 use std::cmp::max;
 
 use crate::errors::CustomContractError;
-use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RicherResponse, ProposalResponse};
-use crate::state::{config, config_read, ContractState, Millionaire, Proposal, State};
+use crate::msg::{
+    CountResponse, ExecuteMsg, InstantiateMsg, ProposalResponse, QueryMsg, RicherResponse,
+};
+use crate::state::{
+    config, config_read, ContractState, Millionaire, Proposal, ProposalVoter, State,
+};
 
 #[entry_point]
 pub fn instantiate(
@@ -40,6 +43,12 @@ pub fn execute(
             start_time,
             end_time,
         } => try_add_proposal(deps, id, choice_count, start_time, end_time),
+        ExecuteMsg::RegisterVoter {
+            proposal_id,
+            eth_addr,
+            scrt_addr,
+            power,
+        } => try_register_voter(deps, proposal_id, eth_addr, scrt_addr, power),
     }
 }
 
@@ -47,10 +56,30 @@ pub fn execute(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
     match msg {
         QueryMsg::CurrentProposal {} => to_binary(&query_current_proposal(deps)?),
+        QueryMsg::VoterCount {} => to_binary(&query_voter_count(deps)?),
         QueryMsg::WhoIsRicher {} => to_binary(&query_who_is_richer(deps)?),
         QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
         QueryMsg::GetCountStatic {} => to_binary(&query_count_static(deps)?),
     }
+}
+
+pub fn try_register_voter(
+    deps: DepsMut,
+    proposal_id: String,
+    eth_addr: String,
+    scrt_addr: String,
+    power: Uint256,
+) -> Result<Response, CustomContractError> {
+    let mut state = config(deps.storage).load()?;
+    if state.voter1.scrt_addr == "" {
+        state.voter1 = ProposalVoter::register(proposal_id, eth_addr, scrt_addr, power);
+    } else {
+        state.voter2= ProposalVoter::register(proposal_id, eth_addr, scrt_addr, power);    
+    }
+    config(deps.storage).save(&state)?;
+    println!("try register voter state: {:?}", state);
+
+    Ok(Response::new())
 }
 
 pub fn try_add_proposal(
@@ -161,7 +190,27 @@ fn query_current_proposal(
     let state = config_read(deps.storage).load()?;
     let resp = ProposalResponse {
         id: state.prop.id,
-        choice_count: state.prop.choice_count
+        choice_count: state.prop.choice_count,
+    };
+    println!("resp {:?}", resp);
+    Ok(resp)
+}
+fn query_voter_count(
+    deps: Deps,
+    //proposal_id: &str,
+) -> StdResult<CountResponse> {
+    let state = config_read(deps.storage).load()?;
+    let mut cnt = 0;
+    if state.voter1.scrt_addr == "" {
+    } else {
+        if state.voter2.scrt_addr == "" {
+            cnt = 1;
+        } else {
+            cnt = 2;
+        }
+    }
+    let resp = CountResponse {
+        count: cnt,
     };
     println!("resp {:?}", resp);
     Ok(resp)
@@ -190,7 +239,41 @@ mod tests {
     }
 
     #[test]
-    fn try_add_proposal() {
+    fn register_voter1() {
+        let mut deps = mock_dependencies();
+
+        let msg = InstantiateMsg {};
+        let info = mock_info("creator", &coins(1000, "earth"));
+        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        let proposal = ExecuteMsg::RegisterVoter {
+            proposal_id: String::from("prop1"),
+            eth_addr: String::from("0xBEEF"),
+            scrt_addr: String::from("secretvoter1"),
+            power: Uint256::from(100u32),
+        };
+
+        let info = mock_info("creator", &[]);
+        let res = execute(deps.as_mut(), mock_env(), info.clone(), proposal).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        let proposal = ExecuteMsg::RegisterVoter {
+            proposal_id: String::from("prop1"),
+            eth_addr: String::from("0xDEAD"),
+            scrt_addr: String::from("secretvoter2"),
+            power: Uint256::from(250u32),
+        };
+
+        let info = mock_info("creator", &[]);
+        let res = execute(deps.as_mut(), mock_env(), info.clone(), proposal).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        let cnt = query_voter_count(deps.as_ref()).unwrap();
+        println!("voter cnt {:?}", cnt);
+    }
+
+    #[test]
+    fn add_proposal() {
         let mut deps = mock_dependencies();
 
         let msg = InstantiateMsg {};
