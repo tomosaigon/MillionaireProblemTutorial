@@ -59,3 +59,32 @@ start-server: # CTRL+C to stop
 clean:
 	cargo clean
 	-rm -f ./contract.wasm ./contract.wasm.gz
+
+SCRTFROM=tomoscrt1
+ORIGLEN := $(shell secretcli query compute list-code | jq length)
+FINALID := $(shell secretcli query compute list-code|jq '1+.[-1].id') # HACK
+.PHONY: fun
+fun: address
+
+address: build
+	@echo codes before store: $(ORIGLEN)
+	secretcli tx compute store ./contract.wasm --gas 5000000 --from $(SCRTFROM) --chain-id secretdev-1 -y
+	sleep 5
+	@echo codes after store and wait 5s \(+1?\)
+	secretcli query compute list-code | jq length
+	SGX_MODE=SW secretcli tx compute instantiate $(FINALID) '{}' --from $(SCRTFROM) --label work$(FINALID) -y
+	sleep 5
+	secretcli query compute list-contract-by-code $(FINALID) | jq -r .[0].address > address
+
+CADDR := $(shell cat address)
+.PHONY: proposal
+proposal:
+	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"submit_proposal": {"id": "prop1", "choice_count": 4, "start_time": "1101", "end_time": "1201"}}' --from $(SCRTFROM) -y
+
+.PHONY: regvoter
+regvoter:
+	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"register_voter": {"proposal_id": "prop1", "eth_addr": "0xDEAD", "scrt_addr": "secretvoter1", "power": "100"}}' --from tomoscrt1 -y
+
+.PHONY: countvoters
+countvoters:
+	SGX_MODE=SW secretcli q compute query $(CADDR) '{"voter_count": {}}'
