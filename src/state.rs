@@ -1,6 +1,6 @@
 use std::{cmp::Ordering /* , collections::hash_map::DefaultHasher */ };
 
-use cosmwasm_std::Storage;
+use cosmwasm_std::{ Storage, Timestamp };
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 
 //use schemars::JsonSchema;
@@ -8,23 +8,22 @@ use serde::{Deserialize, Serialize};
 
 const CONFIG_KEY: &[u8] = b"config";
 
-#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
 pub struct Proposal {
-    id: String,
-    // maybe not needed: active: bool,
-    choice_type: u8,
-    start_time: u32,
-    end_time: u32,
+    pub id: String,
+    pub choice_count: u8,
+    pub start_time: Timestamp,
+    pub end_time: Timestamp,
 }
 
 impl Proposal {
     /// Constructor function. Takes input parameters and initializes a struct containing
     /// those items
     // TODO   only DAO admins can  create new proposals
-    pub fn new(id: String, choice_type: u8, start_time: u32, end_time: u32) -> Proposal {
+    pub fn new(id: String, choice_count: u8, start_time: Timestamp, end_time: Timestamp) -> Proposal {
         return Proposal {
             id: id,
-            choice_type: choice_type,
+            choice_count: choice_count,
             start_time: start_time,
             end_time: end_time,
         };
@@ -57,6 +56,7 @@ pub enum ContractState {
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
 pub struct State {
+    pub prop: Proposal,
     pub count: i32,
     pub count_static: i32,
     pub state: ContractState,

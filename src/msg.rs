@@ -1,5 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use cosmwasm_std::{ Timestamp };
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {}
@@ -16,9 +17,9 @@ pub enum ExecuteMsg {
     SubmitProposal {
         id: String,
         // maybe not needed: active: bool,
-        choice_type: u8,
-        start_time: u32,
-        end_time: u32,
+        choice_count: u8,
+        start_time: Timestamp,
+        end_time: Timestamp,
     },
 }
 
@@ -28,6 +29,13 @@ pub enum QueryMsg {
     WhoIsRicher {},
     GetCount {},
     GetCountStatic {},
+}
+
+// We define a custom struct for each query response
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct ProposalResponse {
+  pub id: String,
+  pub choice_count: u8
 }
 
 // We define a custom struct for each query response

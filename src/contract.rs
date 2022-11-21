@@ -1,11 +1,12 @@
 use cosmwasm_std::{
     entry_point, to_binary, Deps, DepsMut, Env, MessageInfo, QueryResponse, Response, StdError,
     StdResult,
+    Timestamp
 };
 use std::cmp::max;
 
 use crate::errors::CustomContractError;
-use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RicherResponse};
+use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RicherResponse, ProposalResponse};
 use crate::state::{config, config_read, ContractState, Millionaire, Proposal, State};
 
 #[entry_point]
@@ -35,10 +36,10 @@ pub fn execute(
         ExecuteMsg::Reset {} => try_reset(deps),
         ExecuteMsg::SubmitProposal {
             id,
-            choice_type,
+            choice_count,
             start_time,
             end_time,
-        } => try_add_proposal(deps, id, choice_type, start_time, end_time),
+        } => try_add_proposal(deps, id, choice_count, start_time, end_time),
     }
 }
 
@@ -54,15 +55,14 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
 pub fn try_add_proposal(
     deps: DepsMut,
     id: String,
-    choice_type: u8,
-    start_time: u32,
-    end_time: u32,
+    choice_count: u8,
+    start_time: Timestamp,
+    end_time: Timestamp,
 ) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
 
-    state
-        .proposals
-        .push(Proposal::new(id, choice_type, start_time, end_time));
+    state.prop = Proposal::new(id, choice_count, start_time, end_time);
+    
     /*
     match state.state {
         ContractState::Init => {
@@ -178,6 +178,18 @@ fn query_who_is_richer(deps: Deps) -> StdResult<RicherResponse> {
     Ok(resp)
 }
 
+fn query_current_proposal(
+    deps: Deps,
+    //proposal_id: &str,
+) -> StdResult<ProposalResponse> {
+    let state = config_read(deps.storage).load()?;
+    let resp = ProposalResponse {
+        id: state.prop.id,
+        choice_count: state.prop.choice_count
+    };
+    Ok(resp)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -208,25 +220,18 @@ mod tests {
         let info = mock_info("creator", &coins(1000, "earth"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
-        let proposal1 = ExecuteMsg::SubmitProposal {
-            id: String::from("Hello"),
-            // maybe not needed: active: bool,
-            choice_type: 1,
-            start_time: 1,
-            end_time: 1,
-        };
-
-        let proposal2 = ExecuteMsg::SubmitProposal {
-            id: String::from("Hello2"),
-            // maybe not needed: active: bool,
-            choice_type: 2,
-            start_time: 2,
-            end_time: 2,
+        let proposal = ExecuteMsg::SubmitProposal {
+            id: String::from("prop1"),
+            choice_count: 4u8,
+            start_time: Timestamp::from_nanos(1_000_000_101),
+            end_time: Timestamp::from_nanos(1_000_000_202),
         };
 
         let info = mock_info("creator", &[]);
-        let _res = execute(deps.as_mut(), mock_env(), info.clone(), proposal1).unwrap();
-        let _res = execute(deps.as_mut(), mock_env(), info, proposal2).unwrap();
+        let res = execute(deps.as_mut(), mock_env(), info.clone(), proposal).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        let _ = query_current_proposal(deps.as_ref()).unwrap();
     }
 
     #[test]
