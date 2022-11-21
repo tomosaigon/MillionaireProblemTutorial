@@ -27,7 +27,6 @@ overflow-checks = true
 chrono = "0.4.23"
 cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
 cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
-cw-storage-plus = { git = "https://github.com/scrtlabs/cw-plus", rev = "625d952d539ac17683f3b1ec4904128433fc2347" }
 schemars = "0.8.11"
 serde = { version = "=1.0.103", default-features = false, features = ["derive"] }
 syn = "1.0.103"
