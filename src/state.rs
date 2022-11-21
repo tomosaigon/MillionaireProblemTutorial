@@ -79,7 +79,7 @@ pub struct State {
     pub state: ContractState,
     pub player1: Millionaire,
     pub player2: Millionaire,
-    pub proposals: Vec<Proposal>,
+    // might break scrt XXX pub proposals: Vec<Proposal>,
 }
 
 impl Default for ContractState {
