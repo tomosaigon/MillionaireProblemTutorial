@@ -46,6 +46,7 @@ pub fn execute(
 #[entry_point]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
     match msg {
+        QueryMsg::CurrentProposal {} => to_binary(&query_current_proposal(deps)?),
         QueryMsg::WhoIsRicher {} => to_binary(&query_who_is_richer(deps)?),
         QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
         QueryMsg::GetCountStatic {} => to_binary(&query_count_static(deps)?),
@@ -187,6 +188,7 @@ fn query_current_proposal(
         id: state.prop.id,
         choice_count: state.prop.choice_count
     };
+    println!("resp {:?}", resp);
     Ok(resp)
 }
 

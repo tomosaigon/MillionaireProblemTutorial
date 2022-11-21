@@ -16,7 +16,6 @@ pub enum ExecuteMsg {
     Reset {},
     SubmitProposal {
         id: String,
-        // maybe not needed: active: bool,
         choice_count: u8,
         start_time: Timestamp,
         end_time: Timestamp,
@@ -26,6 +25,7 @@ pub enum ExecuteMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
+    CurrentProposal {},
     WhoIsRicher {},
     GetCount {},
     GetCountStatic {},
