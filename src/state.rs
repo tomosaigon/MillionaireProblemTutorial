@@ -1,13 +1,21 @@
-use cosmwasm_std::{Storage, Uint256, Timestamp };
-use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
-use cw_storage_plus::Map;
+// use cosmwasm_std::{Storage, Timestamp, Uint256};
+// use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};\
+use cosmwasm_std::{Timestamp, Uint256};
+
+use secret_cosmwasm_std::Storage;
+use secret_cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
+// use cw_storage_plus::Map;
+use secret_toolkit::storage::Keymap;
 
 //use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 const CONFIG_KEY: &[u8] = b"config";
-pub const PROPOSALS: Map<&str, Proposal> = Map::new("proposals");
-pub const PROPOSALVOTERS: Map<&str, ProposalVoter> = Map::new("proposalvoters");
+// pub const PROPOSALS: Map<&str, Proposal> = Map::new("proposals");
+// pub const PROPOSALVOTERS: Map<&str, ProposalVoter> = Map::new("proposalvoters");
+
+pub const PROPOSALS: Keymap<String, Proposal> = Keymap::new(b"proposals");
+pub const PROPOSALVOTERS: Keymap<String, ProposalVoter> = Keymap::new(b"proposalvoters");
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct ProposalVoter {
@@ -37,7 +45,6 @@ impl ProposalVoter {
             has_voted: false,
         };
     }
-
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]

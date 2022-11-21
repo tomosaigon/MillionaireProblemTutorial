@@ -1,15 +1,13 @@
-use cosmwasm_std::Uint256;
-use cosmwasm_std::{
-    to_binary, QueryResponse,
-    entry_point, Deps, DepsMut, Env, MessageInfo, Response, StdError,
-    StdResult, Timestamp
+use cosmwasm_std::{Timestamp, Uint256};
+use secret_cosmwasm_std::{
+    entry_point, to_binary, Deps, DepsMut, Env, MessageInfo, QueryResponse, Response, StdError,
+    StdResult,
 };
 
 use crate::errors::CustomContractError;
-use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg };
+use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{
-    config, config_read, ContractState, Proposal, ProposalVoter, State, PROPOSALS,
-    PROPOSALVOTERS,
+    config, config_read, ContractState, Proposal, ProposalVoter, State, PROPOSALS, PROPOSALVOTERS,
 };
 
 #[entry_point]
@@ -60,7 +58,9 @@ pub fn execute(
 #[entry_point]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
     match msg {
-        QueryMsg::WhoWon {proposal_id} => to_binary(&query_count_vote_results(deps, &proposal_id)?),
+        QueryMsg::WhoWon { proposal_id } => {
+            to_binary(&query_count_vote_results(deps, &proposal_id)?)
+        }
     }
 }
 
@@ -95,7 +95,10 @@ pub fn try_cast_vote(
     println!("pv after voting: {:?}", _pv);
 
     let mut prop = PROPOSALS.load(deps.storage, &proposal_id)?;
-    println!("check block time {:?} > start {:?}", env.block.time, prop.start_time);
+    println!(
+        "check block time {:?} > start {:?}",
+        env.block.time, prop.start_time
+    );
     if env.block.time < prop.start_time {
         return Err(CustomContractError::BadVoteTime);
     }
@@ -105,7 +108,11 @@ pub fn try_cast_vote(
         return Err(CustomContractError::BadChoice);
     }
 
-    println!("compare sender {:?} with scrt_addr {:?}", info.sender.to_string(), scrt_addr);
+    println!(
+        "compare sender {:?} with scrt_addr {:?}",
+        info.sender.to_string(),
+        scrt_addr
+    );
     println!("use power {:?}", _pv.power);
     prop.counters[choice as usize] += _pv.power;
     println!("not sorted {:?}", prop.counters);
@@ -151,11 +158,14 @@ pub fn try_add_proposal(
     info: MessageInfo,
     id: String,
     choice_count: u8,
-    start_time:Timestamp,
+    start_time: Timestamp,
     end_time: Timestamp,
 ) -> Result<Response, CustomContractError> {
     let state = config(deps.storage).load()?;
-    println!("check that proposal submitter {:?} is contract admin {:?}", info.sender, state.admin_addr);
+    println!(
+        "check that proposal submitter {:?} is contract admin {:?}",
+        info.sender, state.admin_addr
+    );
     let prop = Proposal::new(choice_count, start_time, end_time);
     // XXX test changing counter
     //prop.counters[1] += Uint256::from(666u32);
@@ -165,10 +175,7 @@ pub fn try_add_proposal(
     Ok(Response::new())
 }
 
-fn query_count_vote_results(
-    deps: Deps,
-    proposal_id: &str,
-) -> StdResult<CountResponse> {
+fn query_count_vote_results(deps: Deps, proposal_id: &str) -> StdResult<CountResponse> {
     let prop = PROPOSALS.load(deps.storage, &proposal_id)?;
 
     let mut winner_idx = 0;
@@ -181,17 +188,18 @@ fn query_count_vote_results(
         }
         i += 1;
     }
-    /* 
+    /*
     let mut counters_copy = prop.counters.clone();
     counters_copy.sort();
     println!("not sorted {:?}", prop.counters);
     println!("sorted {:?}", counters_copy);
     */
-    println!("winning choice: {:?}, count: {:?}", winner_idx, winner_count);
+    println!(
+        "winning choice: {:?}, count: {:?}",
+        winner_idx, winner_count
+    );
     // TODO return the winning choice, count in below response
-    Ok(CountResponse {
-        count: 123,
-    })
+    Ok(CountResponse { count: 123 })
     // Form and return a CountResponse
 }
 
