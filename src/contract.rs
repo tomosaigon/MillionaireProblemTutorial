@@ -90,7 +90,8 @@ pub fn try_add_proposal(
     end_time: Timestamp,
 ) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
-    state.prop = Proposal::new(id, choice_count, start_time, end_time);
+    state.prop = Proposal::new(id.clone(), choice_count, start_time, end_time);
+    state.proposals.push(Proposal::new(id, choice_count, start_time, end_time));
     config(deps.storage).save(&state)?;
     println!("try add proposal state: {:?}", state);
 
@@ -283,6 +284,18 @@ mod tests {
         let proposal = ExecuteMsg::SubmitProposal {
             id: String::from("prop1"),
             choice_count: 4u8,
+            start_time: Timestamp::from_nanos(1_000_000_101),
+            end_time: Timestamp::from_nanos(1_000_000_202),
+        };
+
+        let info = mock_info("creator", &[]);
+        let res = execute(deps.as_mut(), mock_env(), info.clone(), proposal).unwrap();
+        assert_eq!(0, res.messages.len());
+
+
+        let proposal = ExecuteMsg::SubmitProposal {
+            id: String::from("prop2"),
+            choice_count: 3u8,
             start_time: Timestamp::from_nanos(1_000_000_101),
             end_time: Timestamp::from_nanos(1_000_000_202),
         };
