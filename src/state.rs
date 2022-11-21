@@ -33,7 +33,6 @@ impl ProposalVoter {
             has_voted: false,
         };
     }
-
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
@@ -71,6 +70,10 @@ pub struct State {
     pub voter1: ProposalVoter,
     pub voter2: ProposalVoter,
     pub voter3: ProposalVoter,
+    pub counter1: Uint256,
+    pub counter2: Uint256,
+    pub counter3: Uint256,
+    pub counter4: Uint256,
     pub count: i32,
     pub count_static: i32,
     pub state: ContractState,

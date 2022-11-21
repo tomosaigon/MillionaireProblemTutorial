@@ -26,6 +26,12 @@ pub enum ExecuteMsg {
         scrt_addr: String,
         power: Uint256,
     },
+    CastVote {
+        proposal_id: String,
+        eth_addr: String,
+        scrt_addr: String,
+        choice: u8,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -33,6 +39,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     CurrentProposal {},
     VoterCount {},
+    WhoWon {proposal_id: String},
     WhoIsRicher {},
     GetCount {},
     GetCountStatic {},
@@ -43,6 +50,12 @@ pub enum QueryMsg {
 pub struct ProposalResponse {
     pub id: String,
     pub choice_count: u8,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct WinnerResponse {
+    pub choice: u8,
+    pub choice_count: Uint256,
 }
 
 // We define a custom struct for each query response

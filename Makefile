@@ -74,17 +74,24 @@ address: build
 	secretcli query compute list-code | jq length
 	SGX_MODE=SW secretcli tx compute instantiate $(FINALID) '{}' --from $(SCRTFROM) --label work$(FINALID) -y
 	sleep 5
-	secretcli query compute list-contract-by-code $(FINALID) | jq -r .[0].address > address
+	secretcli query compute list-contract-by-code $(FINALID) | jq -r .[0].address > target/address
+	cat target/address
 
-CADDR := $(shell cat address)
+CADDR := $(shell cat target/address)
 .PHONY: proposal
 proposal:
 	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"submit_proposal": {"id": "prop1", "choice_count": 4, "start_time": "1101", "end_time": "1201"}}' --from $(SCRTFROM) -y
 
 .PHONY: regvoter
 regvoter:
-	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"register_voter": {"proposal_id": "prop1", "eth_addr": "0xDEAD", "scrt_addr": "secretvoter1", "power": "100"}}' --from tomoscrt1 -y
+	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"register_voter": {"proposal_id": "prop1", "eth_addr": "0xDEAD", "scrt_addr": "secretvoter1", "power": "100"}}' --from $(SCRTFROM) -y
 
 .PHONY: countvoters
 countvoters:
 	SGX_MODE=SW secretcli q compute query $(CADDR) '{"voter_count": {}}'
+
+.PHONY: castvote
+castvote: #proposal regvoter
+	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"cast_vote": {"proposal_id": "prop1", "eth_addr": "0xDEAD", "scrt_addr": "secretvoter1", "choice": 1}}' --from $(SCRTFROM) -y
+	sleep 10
+	SGX_MODE=SW secretcli q compute query $(CADDR) '{"who_won": {"proposal_id": "prop1"}}'
