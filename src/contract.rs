@@ -11,6 +11,7 @@ use crate::msg::{
 };
 use crate::state::{
     config, config_read, ContractState, Millionaire, Proposal, ProposalVoter, State,
+    Data, PEOPLE
 };
 
 #[entry_point]
@@ -134,6 +135,8 @@ pub fn try_add_proposal(
     end_time: Timestamp,
 ) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
+    // TODO clear existing counters and voters
+    // state.voter1 = ProposalVoter::default();
     state.prop = Proposal::new(id.clone(), choice_count, start_time, end_time);
     // XXX state.proposals.push(Proposal::new(id, choice_count, start_time, end_time));
     config(deps.storage).save(&state)?;
@@ -283,7 +286,64 @@ mod tests {
     use super::*;
 
     use cosmwasm_std::coins;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockStorage};
+
+    // the trait `cosmwasm_std::traits::Storage` is not implemented for `MemoryStorage` 
+    // the trait `From<cosmwasm_std::errors::std_error::StdError>` is not implemented for `cosmwasm_std::StdError`
+    /*
+    #[test]
+    fn cwspmap_demo() -> StdResult<()> {
+        let mut store = MockStorage::new();
+        let data = Data {
+            name: "John".to_string(),
+            age: 32,
+        };
+
+        // load and save with extra key argument
+        let empty = PEOPLE.may_load(&store, "john")?;
+        assert_eq!(None, empty);
+        PEOPLE.save(&mut store, "john", &data)?;
+        let loaded = PEOPLE.load(&store, "john")?;
+        assert_eq!(data, loaded);
+
+        // nothing on another key
+        let missing = PEOPLE.may_load(&store, "jack")?;
+        assert_eq!(None, missing);
+
+        // update function for new or existing keys
+        let birthday = |d: Option<Data>| -> StdResult<Data> {
+            match d {
+                Some(one) => Ok(Data {
+                    name: one.name,
+                    age: one.age + 1,
+                }),
+                None => Ok(Data {
+                    name: "Newborn".to_string(),
+                    age: 0,
+                }),
+            }
+        };
+
+        let old_john = PEOPLE.update(&mut store, "john", birthday)?;
+        assert_eq!(33, old_john.age);
+        assert_eq!("John", old_john.name.as_str());
+
+        let new_jack = PEOPLE.update(&mut store, "jack", birthday)?;
+        assert_eq!(0, new_jack.age);
+        assert_eq!("Newborn", new_jack.name.as_str());
+
+        // update also changes the store
+        assert_eq!(old_john, PEOPLE.load(&store, "john")?);
+        assert_eq!(new_jack, PEOPLE.load(&store, "jack")?);
+
+        // removing leaves us empty
+        PEOPLE.remove(&mut store, "john");
+        let empty = PEOPLE.may_load(&store, "john")?;
+        assert_eq!(None, empty);
+
+        Ok(())
+    }
+    */
 
     #[test]
     fn proper_instantialization() {
