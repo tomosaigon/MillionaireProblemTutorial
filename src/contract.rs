@@ -11,8 +11,7 @@ use crate::msg::{
 };
 use crate::state::{
     config, config_read, ContractState, Millionaire, Proposal, ProposalVoter, State,
-    // Data, PEOPLE
-    COUNT_STORE
+    COUNT_STORE, PROPOSALS_STORE
 };
 
 #[entry_point]
@@ -143,6 +142,7 @@ pub fn try_add_proposal(
     config(deps.storage).save(&state)?;
     println!("try add proposal state: {:?}", state);
 
+    PROPOSALS_STORE.push(deps.storage, &state.prop.clone());
     // Test AppendStore
     COUNT_STORE.push(deps.storage, &2)?;
     COUNT_STORE.push(deps.storage, &3)?;
@@ -268,12 +268,26 @@ fn query_current_proposal(
         Ok(l) => l as u8,
         Err(e) => return Err(e),
     };
+    /*
     let state = config_read(deps.storage).load()?;
     let resp = ProposalResponse {
         id: state.prop.id,
         choice_count: fake_choice_count, // state.prop.choice_count,
     };
     println!("resp {:?}", resp);
+    */
+    let prop_len = PROPOSALS_STORE.get_len(deps.storage)?;
+    let prop = PROPOSALS_STORE.get_at(deps.storage, prop_len-1)?;
+    /*
+    let prop: Proposal = match PROPOSALS_STORE.get_at(deps.storage, prop_len) {
+        Ok(res) => res,
+        Err(e) => return Err(e),
+    };
+    */
+    let resp = ProposalResponse {
+        id: prop.id,
+        choice_count: prop.choice_count, // state.prop.choice_count,
+    };
     Ok(resp)
 }
 fn query_voter_count(
@@ -374,8 +388,7 @@ mod tests {
             secret_cosmwasm_storage::prefixed_storage::ReadonlyPrefixedStorage<'a>
             required for the cast from `MemoryStorage` to the object type `dyn secret_cosmwasm_std::traits::Storage`
         */
-        //append_store.push(&mut storage, &1234)?;
-        /*
+        append_store.push(&mut storage, &1234)?;
         append_store.push(&mut storage, &2143)?;
         append_store.push(&mut storage, &3412)?;
         append_store.push(&mut storage, &4321)?;
@@ -385,7 +398,6 @@ mod tests {
         assert_eq!(append_store.pop(&mut storage), Ok(2143));
         assert_eq!(append_store.pop(&mut storage), Ok(1234));
         assert!(append_store.pop(&mut storage).is_err());
-        */
         Ok(())
     }
 

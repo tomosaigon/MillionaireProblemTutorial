@@ -9,16 +9,9 @@ use secret_toolkit::storage::AppendStore;
 use serde::{Deserialize, Serialize};
 
 pub static COUNT_STORE: AppendStore<i32> = AppendStore::new(b"count");
+pub static PROPOSALS_STORE: AppendStore<Proposal> = AppendStore::new(b"proposals");
 
 const CONFIG_KEY: &[u8] = b"config";
-
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct Data {
-    pub name: String,
-    pub age: i32,
-}
-
-// pub const PEOPLE: Map<&str, Data> = Map::new("people");
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
 pub struct ProposalVoter {
