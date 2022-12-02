@@ -11,7 +11,8 @@ use crate::msg::{
 };
 use crate::state::{
     config, config_read, ContractState, Millionaire, Proposal, ProposalVoter, State,
-    Data, PEOPLE
+    // Data, PEOPLE
+    COUNT_STORE
 };
 
 #[entry_point]
@@ -142,6 +143,13 @@ pub fn try_add_proposal(
     config(deps.storage).save(&state)?;
     println!("try add proposal state: {:?}", state);
 
+    // Test AppendStore
+    COUNT_STORE.push(deps.storage, &2)?;
+    COUNT_STORE.push(deps.storage, &3)?;
+    COUNT_STORE.push(deps.storage, &5)?;
+    COUNT_STORE.push(deps.storage, &8)?;
+    COUNT_STORE.push(deps.storage, &11)?;
+
     Ok(Response::new())
 }
 
@@ -254,10 +262,16 @@ fn query_current_proposal(
     deps: Deps,
     //proposal_id: &str,
 ) -> StdResult<ProposalResponse> {
+    // COUNT_STORE.push(deps.storage, &1234)?;
+    // let fake_choice_count = match COUNT_STORE.get_len(deps.storage) {
+    let fake_choice_count = match COUNT_STORE.get_at(deps.storage, 3) {
+        Ok(l) => l as u8,
+        Err(e) => return Err(e),
+    };
     let state = config_read(deps.storage).load()?;
     let resp = ProposalResponse {
         id: state.prop.id,
-        choice_count: state.prop.choice_count,
+        choice_count: fake_choice_count, // state.prop.choice_count,
     };
     println!("resp {:?}", resp);
     Ok(resp)
@@ -287,20 +301,24 @@ mod tests {
 
     use cosmwasm_std::coins;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockStorage};
+    use secret_toolkit::storage::AppendStore;
 
     // the trait `cosmwasm_std::traits::Storage` is not implemented for `MemoryStorage` 
     // the trait `From<cosmwasm_std::errors::std_error::StdError>` is not implemented for `cosmwasm_std::StdError`
-    /*
     #[test]
     fn cwspmap_demo() -> StdResult<()> {
+        /*
         let mut store = MockStorage::new();
         let data = Data {
             name: "John".to_string(),
             age: 32,
         };
+        */
 
         // load and save with extra key argument
-        let empty = PEOPLE.may_load(&store, "john")?;
+        // the trait `cosmwasm_std::traits::Storage` is not implemented for `MemoryStorage` 
+        // let empty = PEOPLE.may_load(&store, "john")?;
+    /*
         assert_eq!(None, empty);
         PEOPLE.save(&mut store, "john", &data)?;
         let loaded = PEOPLE.load(&store, "john")?;
@@ -341,9 +359,35 @@ mod tests {
         let empty = PEOPLE.may_load(&store, "john")?;
         assert_eq!(None, empty);
 
+    */
         Ok(())
     }
-    */
+
+    #[test]
+    fn test_push_pop() -> StdResult<()> {
+        let mut storage = MockStorage::new();
+        let append_store: AppendStore<i32> = AppendStore::new(b"test");
+        /* the trait bound `MemoryStorage: secret_cosmwasm_std::traits::Storage` is not satisfied
+            the following other types implement trait `secret_cosmwasm_std::traits::Storage`:
+            secret_cosmwasm_std::storage::MemoryStorage
+            secret_cosmwasm_storage::prefixed_storage::PrefixedStorage<'a>
+            secret_cosmwasm_storage::prefixed_storage::ReadonlyPrefixedStorage<'a>
+            required for the cast from `MemoryStorage` to the object type `dyn secret_cosmwasm_std::traits::Storage`
+        */
+        //append_store.push(&mut storage, &1234)?;
+        /*
+        append_store.push(&mut storage, &2143)?;
+        append_store.push(&mut storage, &3412)?;
+        append_store.push(&mut storage, &4321)?;
+
+        assert_eq!(append_store.pop(&mut storage), Ok(4321));
+        assert_eq!(append_store.pop(&mut storage), Ok(3412));
+        assert_eq!(append_store.pop(&mut storage), Ok(2143));
+        assert_eq!(append_store.pop(&mut storage), Ok(1234));
+        assert!(append_store.pop(&mut storage).is_err());
+        */
+        Ok(())
+    }
 
     #[test]
     fn proper_instantialization() {
