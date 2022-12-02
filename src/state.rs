@@ -3,7 +3,7 @@ use std::{cmp::Ordering /* , collections::hash_map::DefaultHasher */ };
 use cosmwasm_std::{ Storage, Timestamp, Uint256 };
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 // use cw_storage_plus::{ Map };
-use secret_toolkit::storage::AppendStore;
+use secret_toolkit::storage::{ AppendStore, /*Keymap*/ };
 
 //use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -60,6 +60,12 @@ impl Proposal {
             end_time: end_time,
         };
     }
+}
+
+#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
+pub struct Foo {
+    pub string: String,
+    pub number: i32,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]

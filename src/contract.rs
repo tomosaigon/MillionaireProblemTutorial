@@ -11,6 +11,7 @@ use crate::msg::{
 };
 use crate::state::{
     config, config_read, ContractState, Millionaire, Proposal, ProposalVoter, State,
+    Foo,
     COUNT_STORE, PROPOSALS_STORE
 };
 
@@ -315,7 +316,7 @@ mod tests {
 
     use cosmwasm_std::coins;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockStorage};
-    use secret_toolkit::storage::AppendStore;
+    use secret_toolkit::storage::{ AppendStore, Keymap };
 
     // the trait `cosmwasm_std::traits::Storage` is not implemented for `MemoryStorage` 
     // the trait `From<cosmwasm_std::errors::std_error::StdError>` is not implemented for `cosmwasm_std::StdError`
@@ -374,6 +375,34 @@ mod tests {
         assert_eq!(None, empty);
 
     */
+        Ok(())
+    }
+
+    #[test]
+    fn test_keymap_iter() -> StdResult<()> {
+        let mut storage = MockStorage::new();
+
+        let keymap: Keymap<Vec<u8>, Foo> = Keymap::new(b"test");
+        let foo1 = Foo {
+            string: "string one".to_string(),
+            number: 1111,
+        };
+        let foo2 = Foo {
+            string: "string two".to_string(),
+            number: 1111,
+        };
+
+        keymap.insert(&mut storage, &b"key1".to_vec(), &foo1)?;
+        keymap.insert(&mut storage, &b"key2".to_vec(), &foo2)?;
+
+        let mut x = keymap.iter(&storage)?;
+        let (len, _) = x.size_hint();
+        assert_eq!(len, 2);
+
+        assert_eq!(x.next().unwrap()?, (b"key1".to_vec(), foo1));
+
+        assert_eq!(x.next().unwrap()?, (b"key2".to_vec(), foo2));
+
         Ok(())
     }
 
