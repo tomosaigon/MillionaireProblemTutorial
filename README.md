@@ -4,6 +4,9 @@ Allow Ethereum wallets to register DAO governance token holders for a proposal a
 
 Configure secretcli to use a key and connect to a scrt blockchain.
 
+Use this specific localsecret release in case of contract instantiation errors:
+`docker run -it -p 9091:9091 -p 26657:26657 -p 1317:1317 -p 5000:5000 --name localsecret ghcr.io/scrtlabs/localsecret:v1.4.0-cw-v1-beta.2`
+
 Compile contract.wasm:
 `make build`
 
