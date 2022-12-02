@@ -80,7 +80,11 @@ address: build
 CADDR := $(shell cat target/address)
 .PHONY: proposal
 proposal:
-	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"submit_proposal": {"id": "prop1", "choice_count": 4, "start_time": "1101", "end_time": "1201"}}' --from $(SCRTFROM) -y
+	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"submit_proposal": {"id": "prop1sozu", "choice_count": 4, "start_time": "1101", "end_time": "1201"}}' --from $(SCRTFROM) -y
+
+.PHONY: showproposal
+showproposal:
+	SGX_MODE=SW secretcli q compute query $(CADDR) '{"current_proposal": {}}'
 
 .PHONY: regvoter
 regvoter:
