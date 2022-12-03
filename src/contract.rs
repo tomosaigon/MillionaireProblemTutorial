@@ -11,7 +11,7 @@ use crate::msg::{
 };
 use crate::state::{
     config, config_read, ContractState, Millionaire, Proposal, ProposalVoter, State,
-    PROPOSALS_STORE
+    PROPOSALS_STORE, PROPOSAL_VOTERS_STORE,
 };
 
 #[entry_point]
@@ -65,7 +65,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
     match msg {
         QueryMsg::CurrentProposal {} => to_binary(&query_current_proposal(deps)?),
         QueryMsg::VoterCount {} => to_binary(&query_voter_count(deps)?),
-        QueryMsg::WhoWon { proposal_id } => to_binary(&query_count_vote_results(deps, &proposal_id)?),
+        QueryMsg::WhoWon { proposal_id } => {
+            to_binary(&query_count_vote_results(deps, &proposal_id)?)
+        }
         QueryMsg::WhoIsRicher {} => to_binary(&query_who_is_richer(deps)?),
         QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
         QueryMsg::GetCountStatic {} => to_binary(&query_count_static(deps)?),
@@ -81,13 +83,25 @@ pub fn try_register_voter(
 ) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
     if state.voter1.scrt_addr == "" {
-        state.voter1 = ProposalVoter::register(proposal_id, eth_addr, scrt_addr, power);
+        state.voter1 = ProposalVoter::register(proposal_id.clone(), eth_addr.clone(), scrt_addr.clone(), power);
     } else {
         // XXX
-        state.voter2 = ProposalVoter::register(proposal_id, eth_addr, scrt_addr, power);
+        state.voter2 = ProposalVoter::register(proposal_id.clone(), eth_addr.clone(), scrt_addr.clone(), power);
     }
     config(deps.storage).save(&state)?;
     println!("try register voter state: {:?}", state);
+
+    // New way
+    // TODO look up prop idx by matching proposal_id
+    let mut prop_idx = PROPOSALS_STORE.get_len(deps.storage)? as u8;
+    if prop_idx == 0 {
+        return Err(CustomContractError::Std(StdError::NotFound { kind: "No proposals".to_string() }));
+    }
+    prop_idx -= 1; // assume push worked, is unique
+
+    let voters = PROPOSAL_VOTERS_STORE.add_suffix(&[prop_idx]);
+    let vp = ProposalVoter::register(proposal_id.clone(), eth_addr.clone(), scrt_addr.clone(), power);
+    voters.insert(deps.storage, &eth_addr.clone(), &vp)?;
 
     Ok(Response::new())
 }
@@ -99,28 +113,43 @@ pub fn try_cast_vote(
     scrt_addr: String,
     choice: u8,
 ) -> Result<Response, CustomContractError> {
+    // 1. look up prop idx by proposal_id to suffix into voters
+    // TODO real lookup
+    let prop_idx = PROPOSALS_STORE.get_len(deps.storage)? as u8 - 1; // assume push worked, is unique
+    let prop = PROPOSALS_STORE.get_at(deps.storage, prop_idx as u32)?;
+    println!("{:?} should match {:?}", proposal_id, prop.id);
+    println!("TODO check vote sender is {:?}", scrt_addr);
+    // 2. check voter registration, ensure vote once, use power
+    let voters = PROPOSAL_VOTERS_STORE.add_suffix(&[prop_idx]);
+    let vp = voters.get(deps.storage, &eth_addr).unwrap();
+    let power = vp.power;
+    // 3. increment temporary counters
     let mut state = config(deps.storage).load()?;
-    println!(
-        "proposal {:?} should be state-like {:?}",
-        proposal_id, state.prop.id
-    );
-    println!("should look up by eth addr {:?}", eth_addr);
-    let power: Uint256;
-    if state.voter1.scrt_addr == scrt_addr {
-        power = state.voter1.power;
-    } else if state.voter2.scrt_addr == scrt_addr {
-        power = state.voter2.power;
-    } else {
-        // XXX
-        power = state.voter3.power;
-    }
-    // TODO don't let him vote twice
-    match choice {
-        0 => state.counter1 += power,
-        1 => state.counter2 += power,
-        2 => state.counter3 += power,
-        _ => state.counter4 += power,
-    }
+    // TODO ensure choice is within choice_count
+    state.counters[choice as usize] += power;
+    
+    // let mut state = config(deps.storage).load()?;
+    // println!(
+    //     "proposal {:?} should be state-like {:?}",
+    //     proposal_id, state.prop.id
+    // );
+    // println!("should look up by eth addr {:?}", eth_addr);
+    // let power: Uint256;
+    // if state.voter1.scrt_addr == scrt_addr {
+    //     power = state.voter1.power;
+    // } else if state.voter2.scrt_addr == scrt_addr {
+    //     power = state.voter2.power;
+    // } else {
+    //     // XXX
+    //     power = state.voter3.power;
+    // }
+    // // TODO don't let him vote twice
+    // match choice {
+    //     0 => state.counter1 += power,
+    //     1 => state.counter2 += power,
+    //     2 => state.counter3 += power,
+    //     _ => state.counter4 += power,
+    // }
     config(deps.storage).save(&state)?;
     println!("try cast voter state: {:?}", state);
 
@@ -142,15 +171,28 @@ pub fn try_add_proposal(
     config(deps.storage).save(&state)?;
     println!("try add proposal state: {:?}", state);
 
+    // TODO get rid of state.prop
+    // TODO check for duplicate id in store, overwriting if so
     PROPOSALS_STORE.push(deps.storage, &state.prop.clone())?;
+    // let prop_idx = PROPOSALS_STORE.get_len(deps.storage)? as u8 - 1; // assume push worked, is unique
+
+    // TODO initialize proposal voters keymap for given prop id as suffix
+    // let voters = PROPOSAL_VOTERS_STORE.add_suffix(&[prop_idx]);
+    // let vp0 = ProposalVoter::register(
+    //     id.clone(),
+    //     "0x0".to_string(),
+    //     "secret0foo".to_string(),
+    //     Uint256::from(0u8),
+    // );
+    // voters.insert(deps.storage, &"init_test".to_string(), &vp0)?;
 
     Ok(Response::new())
 }
 
 pub fn try_increment(deps: DepsMut) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
-    state.count += Uint256::from(1u32); 
-   // state.count_static = 666;
+    state.count += Uint256::from(1u32);
+    // state.count_static = 666;
     config(deps.storage).save(&state)?;
     Ok(Response::new())
 }
@@ -161,7 +203,6 @@ pub fn try_submit_net_worth(
     worth: u64,
 ) -> Result<Response, CustomContractError> {
     let mut state = config(deps.storage).load()?;
-
     match state.state {
         ContractState::Init => {
             state.player1 = Millionaire::new(name, worth);
@@ -175,9 +216,7 @@ pub fn try_submit_net_worth(
             return Err(CustomContractError::AlreadyAddedBothMillionaires);
         }
     }
-
     config(deps.storage).save(&state)?;
-
     Ok(Response::new())
 }
 
@@ -235,21 +274,37 @@ fn query_who_is_richer(deps: Deps) -> StdResult<RicherResponse> {
 
 fn query_count_vote_results(deps: Deps, proposal_id: &str) -> StdResult<WinnerResponse> {
     let state = config_read(deps.storage).load()?;
-    println!("compare requested {:?} with state {:?}", proposal_id, state.prop.id);
-    if state.counter1 > state.counter2 {
-        let resp = WinnerResponse {
-            choice: 0,
-            choice_count: state.counter1,
-        };
-        return Ok(resp);
-    }
+    println!(
+        "compare requested {:?} with state {:?}",
+        proposal_id, state.prop.id
+    );
 
-    // TODO more than 2 choices
-    let resp = WinnerResponse {
-        choice: 1,
-        choice_count: state.counter2,
-    };
-    Ok(resp)
+    let mut win_idx = 0;
+    let mut win_c = Uint256::from(0u8);
+    for (idx, c) in state.counters.iter().enumerate() {
+        if *c > win_c {
+            win_c = *c;
+            win_idx = idx;
+        }
+    }
+    Ok(WinnerResponse {
+        choice: win_idx as u8,
+        choice_count: win_c,
+    })
+    // if state.counter1 > state.counter2 {
+    //     let resp = WinnerResponse {
+    //         choice: 0,
+    //         choice_count: state.counter1,
+    //     };
+    //     return Ok(resp);
+    // }
+
+    // // TODO more than 2 choices
+    // let resp = WinnerResponse {
+    //     choice: 1,
+    //     choice_count: state.counter2,
+    // };
+    // Ok(resp)
 }
 
 fn query_current_proposal(
@@ -265,7 +320,7 @@ fn query_current_proposal(
     println!("resp {:?}", resp);
     */
     let prop_len = PROPOSALS_STORE.get_len(deps.storage)?;
-    let prop = PROPOSALS_STORE.get_at(deps.storage, prop_len-1)?;
+    let prop = PROPOSALS_STORE.get_at(deps.storage, prop_len - 1)?;
     /*
     let prop: Proposal = match PROPOSALS_STORE.get_at(deps.storage, prop_len) {
         Ok(res) => res,
@@ -280,19 +335,28 @@ fn query_current_proposal(
 }
 fn query_voter_count(
     deps: Deps,
-    //proposal_id: &str,
+    //proposal_id: &str, // TODO
 ) -> StdResult<CountResponse> {
-    let state = config_read(deps.storage).load()?;
-    let mut cnt: u32 = 0;
-    if state.voter1.scrt_addr == "" {
-    } else {
-        if state.voter2.scrt_addr == "" {
-            cnt = 1;
-        } else {
-            cnt = 2;
-        }
-    }
-    let resp = CountResponse { count: Uint256::from(cnt) };
+    // let state = config_read(deps.storage).load()?;
+    // let mut cnt: u32 = 0;
+    // if state.voter1.scrt_addr == "" {
+    // } else {
+    //     if state.voter2.scrt_addr == "" {
+    //         cnt = 1;
+    //     } else {
+    //         cnt = 2;
+    //     }
+    // }
+    let prop_idx = PROPOSALS_STORE.get_len(deps.storage)? as u8 - 1; // assume push worked, is unique
+    // let prop = PROPOSALS_STORE.get_at(deps.storage, prop_idx as u32)?;
+    //prinln!("{:?} should match {:?}", proposal_id, prop.id);
+    //println!("TODO check vote sender is {:?}", scrt_addr);
+    // 2. check voter registration, ensure vote once, use power
+    let voters = PROPOSAL_VOTERS_STORE.add_suffix(&[prop_idx]);
+    let resp = CountResponse {
+        // count: Uint256::from(cnt),
+        count: Uint256::from(voters.get_len(deps.storage)?),
+    };
     println!("resp {:?}", resp);
     Ok(resp)
 }
@@ -301,10 +365,10 @@ fn query_voter_count(
 mod tests {
     use super::*;
 
+    use crate::state::Foo;
     use cosmwasm_std::coins;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockStorage};
-    use secret_toolkit::storage::{ AppendStore, Keymap };
-    use crate::state::Foo;
+    use secret_toolkit::storage::{AppendStore, Keymap};
 
     #[test]
     fn test_keymap_iter() -> StdResult<()> {
@@ -381,7 +445,6 @@ mod tests {
         let info = mock_info("creator", &coins(1000, "earth"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
-
         let proposal = ExecuteMsg::SubmitProposal {
             id: String::from("prop1"),
             choice_count: 4u8,
@@ -420,18 +483,29 @@ mod tests {
 
         let cast1 = ExecuteMsg::CastVote {
             proposal_id: String::from("prop1"),
-            eth_addr: String::from("0xDEAD"),
-            scrt_addr: String::from("secretvoter2"),
-            choice: 1,
+            eth_addr: String::from("0xBEEF"),
+            scrt_addr: String::from("secretvoter1"),
+            choice: 2,
         };
 
         let info = mock_info("creator", &[]);
         let res = execute(deps.as_mut(), mock_env(), info.clone(), cast1).unwrap();
         assert_eq!(0, res.messages.len());
 
-        let winner = query_count_vote_results(deps.as_ref(), "prop1").unwrap();
-        println!("winner  {:?}", winner);
+        let cast2 = ExecuteMsg::CastVote {
+            proposal_id: String::from("prop1"),
+            eth_addr: String::from("0xDEAD"),
+            scrt_addr: String::from("secretvoter2"),
+            choice: 1,
+        };
 
+        let info = mock_info("creator", &[]);
+        let res = execute(deps.as_mut(), mock_env(), info.clone(), cast2).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        let winner = query_count_vote_results(deps.as_ref(), "prop1").unwrap();
+        println!("winner should be #1 {:?}", winner);
+        assert_eq!(winner.choice, 1);
     }
 
     #[test]
@@ -441,6 +515,17 @@ mod tests {
         let msg = InstantiateMsg {};
         let info = mock_info("creator", &coins(1000, "earth"));
         let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        let proposal = ExecuteMsg::SubmitProposal {
+            id: String::from("prop1"),
+            choice_count: 4u8,
+            start_time: Timestamp::from_nanos(1_000_000_101),
+            end_time: Timestamp::from_nanos(1_000_000_202),
+        };
+
+        let info = mock_info("creator", &[]);
+        let res = execute(deps.as_mut(), mock_env(), info.clone(), proposal).unwrap();
+        assert_eq!(0, res.messages.len());
 
         let regvo1 = ExecuteMsg::RegisterVoter {
             proposal_id: String::from("prop1"),
@@ -465,7 +550,8 @@ mod tests {
         assert_eq!(0, res.messages.len());
 
         let cnt = query_voter_count(deps.as_ref()).unwrap();
-        println!("voter cnt {:?}", cnt);
+        println!("voter cnt should be 2 {:?}", cnt);
+        assert_eq!("2".to_string(), cnt.count.to_string());
     }
 
     #[test]
@@ -498,7 +584,9 @@ mod tests {
         let res = execute(deps.as_mut(), mock_env(), info.clone(), proposal).unwrap();
         assert_eq!(0, res.messages.len());
 
-        let _ = query_current_proposal(deps.as_ref()).unwrap();
+        let resprop = query_current_proposal(deps.as_ref()).unwrap();
+        assert_eq!(resprop.id, "prop2".to_string());
+        println!("check this prop isn't 1st prop1 {:?}", resprop);
     }
 
     #[test]

@@ -2,11 +2,14 @@ use std::{cmp::Ordering };
 
 use cosmwasm_std::{ Storage, Timestamp, Uint256 };
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
-use secret_toolkit::storage::{ AppendStore, };
+use secret_toolkit::storage::{ AppendStore, Keymap };
+// use secret_toolkit::serialization::Json;
 
 use serde::{Deserialize, Serialize};
 
 pub static PROPOSALS_STORE: AppendStore<Proposal> = AppendStore::new(b"proposals");
+// Keymap but similar new prefix for each proposal
+pub static PROPOSAL_VOTERS_STORE: Keymap<String, ProposalVoter> = Keymap::new(b"proposalvoters");
 
 const CONFIG_KEY: &[u8] = b"config";
 
@@ -55,6 +58,7 @@ impl Proposal {
             choice_count: choice_count,
             start_time: start_time,
             end_time: end_time,
+            // voters: Keymap::new(b"voters"),
         };
     }
 }
@@ -78,10 +82,7 @@ pub struct State {
     pub voter1: ProposalVoter,
     pub voter2: ProposalVoter,
     pub voter3: ProposalVoter,
-    pub counter1: Uint256,
-    pub counter2: Uint256,
-    pub counter3: Uint256,
-    pub counter4: Uint256,
+    pub counters: [Uint256; 4],
     pub count: Uint256,
     pub count_static: Uint256,
     pub state: ContractState,
