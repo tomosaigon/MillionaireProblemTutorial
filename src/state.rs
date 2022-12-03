@@ -1,14 +1,11 @@
-use std::{cmp::Ordering /* , collections::hash_map::DefaultHasher */ };
+use std::{cmp::Ordering };
 
 use cosmwasm_std::{ Storage, Timestamp, Uint256 };
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
-// use cw_storage_plus::{ Map };
-use secret_toolkit::storage::{ AppendStore, /*Keymap*/ };
+use secret_toolkit::storage::{ AppendStore, };
 
-//use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-pub static COUNT_STORE: AppendStore<i32> = AppendStore::new(b"count");
 pub static PROPOSALS_STORE: AppendStore<Proposal> = AppendStore::new(b"proposals");
 
 const CONFIG_KEY: &[u8] = b"config";

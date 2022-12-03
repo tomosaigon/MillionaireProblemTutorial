@@ -11,8 +11,7 @@ use crate::msg::{
 };
 use crate::state::{
     config, config_read, ContractState, Millionaire, Proposal, ProposalVoter, State,
-    Foo,
-    COUNT_STORE, PROPOSALS_STORE
+    PROPOSALS_STORE
 };
 
 #[entry_point]
@@ -143,13 +142,7 @@ pub fn try_add_proposal(
     config(deps.storage).save(&state)?;
     println!("try add proposal state: {:?}", state);
 
-    PROPOSALS_STORE.push(deps.storage, &state.prop.clone());
-    // Test AppendStore
-    COUNT_STORE.push(deps.storage, &2)?;
-    COUNT_STORE.push(deps.storage, &3)?;
-    COUNT_STORE.push(deps.storage, &5)?;
-    COUNT_STORE.push(deps.storage, &8)?;
-    COUNT_STORE.push(deps.storage, &11)?;
+    PROPOSALS_STORE.push(deps.storage, &state.prop.clone())?;
 
     Ok(Response::new())
 }
@@ -263,12 +256,6 @@ fn query_current_proposal(
     deps: Deps,
     //proposal_id: &str,
 ) -> StdResult<ProposalResponse> {
-    // COUNT_STORE.push(deps.storage, &1234)?;
-    // let fake_choice_count = match COUNT_STORE.get_len(deps.storage) {
-    let fake_choice_count = match COUNT_STORE.get_at(deps.storage, 3) {
-        Ok(l) => l as u8,
-        Err(e) => return Err(e),
-    };
     /*
     let state = config_read(deps.storage).load()?;
     let resp = ProposalResponse {
@@ -317,66 +304,7 @@ mod tests {
     use cosmwasm_std::coins;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockStorage};
     use secret_toolkit::storage::{ AppendStore, Keymap };
-
-    // the trait `cosmwasm_std::traits::Storage` is not implemented for `MemoryStorage` 
-    // the trait `From<cosmwasm_std::errors::std_error::StdError>` is not implemented for `cosmwasm_std::StdError`
-    #[test]
-    fn cwspmap_demo() -> StdResult<()> {
-        /*
-        let mut store = MockStorage::new();
-        let data = Data {
-            name: "John".to_string(),
-            age: 32,
-        };
-        */
-
-        // load and save with extra key argument
-        // the trait `cosmwasm_std::traits::Storage` is not implemented for `MemoryStorage` 
-        // let empty = PEOPLE.may_load(&store, "john")?;
-    /*
-        assert_eq!(None, empty);
-        PEOPLE.save(&mut store, "john", &data)?;
-        let loaded = PEOPLE.load(&store, "john")?;
-        assert_eq!(data, loaded);
-
-        // nothing on another key
-        let missing = PEOPLE.may_load(&store, "jack")?;
-        assert_eq!(None, missing);
-
-        // update function for new or existing keys
-        let birthday = |d: Option<Data>| -> StdResult<Data> {
-            match d {
-                Some(one) => Ok(Data {
-                    name: one.name,
-                    age: one.age + 1,
-                }),
-                None => Ok(Data {
-                    name: "Newborn".to_string(),
-                    age: 0,
-                }),
-            }
-        };
-
-        let old_john = PEOPLE.update(&mut store, "john", birthday)?;
-        assert_eq!(33, old_john.age);
-        assert_eq!("John", old_john.name.as_str());
-
-        let new_jack = PEOPLE.update(&mut store, "jack", birthday)?;
-        assert_eq!(0, new_jack.age);
-        assert_eq!("Newborn", new_jack.name.as_str());
-
-        // update also changes the store
-        assert_eq!(old_john, PEOPLE.load(&store, "john")?);
-        assert_eq!(new_jack, PEOPLE.load(&store, "jack")?);
-
-        // removing leaves us empty
-        PEOPLE.remove(&mut store, "john");
-        let empty = PEOPLE.may_load(&store, "john")?;
-        assert_eq!(None, empty);
-
-    */
-        Ok(())
-    }
+    use crate::state::Foo;
 
     #[test]
     fn test_keymap_iter() -> StdResult<()> {
