@@ -1,8 +1,8 @@
-use std::{cmp::Ordering };
+use std::cmp::Ordering;
 
-use cosmwasm_std::{ Storage, Timestamp, Uint256 };
+use cosmwasm_std::{Storage, Timestamp, Uint256};
 use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
-use secret_toolkit::storage::{ AppendStore, Keymap };
+use secret_toolkit::storage::{AppendStore, Keymap};
 // use secret_toolkit::serialization::Json;
 
 use serde::{Deserialize, Serialize};
@@ -31,10 +31,10 @@ impl ProposalVoter {
     ) -> ProposalVoter {
         // TODO check if already registered
         return ProposalVoter {
-            proposal_id: proposal_id,
-            eth_addr: eth_addr,
-            scrt_addr: scrt_addr,
-            power: power,
+            proposal_id,
+            eth_addr,
+            scrt_addr,
+            power,
             has_voted: false,
         };
     }
@@ -46,19 +46,30 @@ pub struct Proposal {
     pub choice_count: u8,
     pub start_time: Timestamp,
     pub end_time: Timestamp,
+    pub counters: [Uint256; 4],
 }
 
 impl Proposal {
     /// Constructor function. Takes input parameters and initializes a struct containing
     /// those items
     // TODO   only DAO admins can  create new proposals
-    pub fn new(id: String, choice_count: u8, start_time: Timestamp, end_time: Timestamp) -> Proposal {
+    pub fn new(
+        id: String,
+        choice_count: u8,
+        start_time: Timestamp,
+        end_time: Timestamp,
+    ) -> Proposal {
         return Proposal {
-            id: id,
-            choice_count: choice_count,
-            start_time: start_time,
-            end_time: end_time,
-            // voters: Keymap::new(b"voters"),
+            id,
+            choice_count,
+            start_time,
+            end_time,
+            counters: [
+                Uint256::from(0u8),
+                Uint256::from(0u8),
+                Uint256::from(0u8),
+                Uint256::from(0u8),
+            ],
         };
     }
 }

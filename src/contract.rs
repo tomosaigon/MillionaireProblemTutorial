@@ -110,15 +110,19 @@ pub fn try_cast_vote(
     println!("TODO check vote sender is {:?}", scrt_addr);
     // 2. check voter registration, ensure vote once, use power
     let voters = PROPOSAL_VOTERS_STORE.add_suffix(&[prop_idx]);
-    let vp = voters.get(deps.storage, &eth_addr).unwrap();
+    let mut vp = voters.get(deps.storage, &eth_addr).unwrap();
     let power = vp.power;
-    // 3. increment temporary counters
-    let mut state = config(deps.storage).load()?;
+    if vp.has_voted {
+        return Err(CustomContractError::Std(StdError::NotFound { kind: "Has already voted".to_string() }));
+    }
+    vp.has_voted = true;
+    voters.insert(deps.storage, &eth_addr, &vp)?;
+    // 3. increment proposal counters
+    // TODO filter by id instead of assuming last
+    let mut prop = PROPOSALS_STORE.pop(deps.storage)?;
     // TODO ensure choice is within choice_count
-    state.counters[choice as usize] += power;
-    
-    config(deps.storage).save(&state)?;
-    println!("try cast voter state: {:?}", state);
+    prop.counters[choice as usize] += power;
+    PROPOSALS_STORE.push(deps.storage, &prop)?;
 
     Ok(Response::new())
 }
@@ -221,11 +225,12 @@ fn query_who_is_richer(deps: Deps) -> StdResult<RicherResponse> {
 }
 
 fn query_count_vote_results(deps: Deps, proposal_id: &str) -> StdResult<WinnerResponse> {
-    println!("TODO fetch counters for prop {:?}", proposal_id);
-    let state = config_read(deps.storage).load()?;
+    let prop_len = PROPOSALS_STORE.get_len(deps.storage)?;
+    let prop = PROPOSALS_STORE.get_at(deps.storage, prop_len - 1)?;
+    println!("check {:?} == {:?}", proposal_id, prop.id);
     let mut win_idx = 0;
     let mut win_c = Uint256::from(0u8);
-    for (idx, c) in state.counters.iter().enumerate() {
+    for (idx, c) in prop.counters.iter().enumerate() {
         if *c > win_c {
             win_c = *c;
             win_idx = idx;
