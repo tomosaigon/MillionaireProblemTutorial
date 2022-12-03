@@ -78,17 +78,12 @@ pub enum ContractState {
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
 pub struct State {
-    pub prop: Proposal,
-    pub voter1: ProposalVoter,
-    pub voter2: ProposalVoter,
-    pub voter3: ProposalVoter,
     pub counters: [Uint256; 4],
     pub count: Uint256,
     pub count_static: Uint256,
     pub state: ContractState,
     pub player1: Millionaire,
     pub player2: Millionaire,
-    // might break scrt XXX pub proposals: Vec<Proposal>,
 }
 
 impl Default for ContractState {
