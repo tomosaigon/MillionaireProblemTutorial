@@ -5,21 +5,18 @@ use cosmwasm_std::{
 
 use crate::errors::CustomContractError;
 use crate::msg::{
-    CountResponse, ExecuteMsg, InstantiateMsg, ProposalResponse, QueryMsg,
-    WinnerResponse,
+    CountResponse, ExecuteMsg, InstantiateMsg, ProposalResponse, QueryMsg, WinnerResponse,
 };
-use crate::state::{
-    Proposal, ProposalVoter,
-    PROPOSALS_STORE, PROPOSAL_VOTERS_STORE,
-};
+use crate::state::{Proposal, ProposalVoter, OWNER, PROPOSALS_STORE, PROPOSAL_VOTERS_STORE};
 
 #[entry_point]
 pub fn instantiate(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> StdResult<Response> {
+    OWNER.save(deps.storage, &info.sender)?;
     Ok(Response::default())
 }
 
@@ -27,7 +24,7 @@ pub fn instantiate(
 pub fn execute(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, CustomContractError> {
     match msg {
@@ -36,13 +33,13 @@ pub fn execute(
             choice_count,
             start_time,
             end_time,
-        } => try_add_proposal(deps, id, choice_count, start_time, end_time),
+        } => try_add_proposal(deps, info, id, choice_count, start_time, end_time),
         ExecuteMsg::RegisterVoter {
             proposal_id,
             eth_addr,
             scrt_addr,
             power,
-        } => try_register_voter(deps, proposal_id, eth_addr, scrt_addr, power),
+        } => try_register_voter(deps, info, proposal_id, eth_addr, scrt_addr, power),
         ExecuteMsg::CastVote {
             proposal_id,
             eth_addr,
@@ -56,29 +53,48 @@ pub fn execute(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
     match msg {
         QueryMsg::CurrentProposal {} => to_binary(&query_current_proposal(deps)?),
+        QueryMsg::ProposalById { proposal_id } => {
+            to_binary(&query_proposal_by_id(deps, &proposal_id)?)
+        }
+        QueryMsg::ProposalCount {} => to_binary(&query_proposal_count(deps)?),
         QueryMsg::VoterCount {} => to_binary(&query_voter_count(deps)?),
         QueryMsg::WhoWon { proposal_id } => {
             to_binary(&query_count_vote_results(deps, &proposal_id)?)
-        },
+        }
     }
 }
 
 pub fn try_register_voter(
     deps: DepsMut,
+    info: MessageInfo,
     proposal_id: String,
     eth_addr: String,
     scrt_addr: String,
     power: Uint256,
 ) -> Result<Response, CustomContractError> {
+    let owner = OWNER.load(deps.storage)?;
+    if owner != info.sender {
+        return Err(CustomContractError::Std(StdError::NotFound {
+            kind: "Not the owner".to_string(),
+        }));
+    }
     // TODO look up prop idx by matching proposal_id
     let mut prop_idx = PROPOSALS_STORE.get_len(deps.storage)? as u8;
     if prop_idx == 0 {
-        return Err(CustomContractError::Std(StdError::NotFound { kind: "No proposals".to_string() }));
+        return Err(CustomContractError::Std(StdError::NotFound {
+            kind: "No proposals".to_string(),
+        }));
     }
     prop_idx -= 1; // assume push worked, is unique
 
     let voters = PROPOSAL_VOTERS_STORE.add_suffix(&[prop_idx]);
-    let vp = ProposalVoter::register(proposal_id.clone(), eth_addr.clone(), scrt_addr.clone(), power);
+    let vp = ProposalVoter::register(
+        proposal_id.clone(),
+        eth_addr.clone(),
+        scrt_addr.clone(),
+        power,
+    );
+    // Should pre-check if already reg'd but this should overwrite any existing
     voters.insert(deps.storage, &eth_addr.clone(), &vp)?;
 
     Ok(Response::new())
@@ -93,7 +109,13 @@ pub fn try_cast_vote(
 ) -> Result<Response, CustomContractError> {
     // 1. look up prop idx by proposal_id to suffix into voters
     // TODO real lookup
-    let prop_idx = PROPOSALS_STORE.get_len(deps.storage)? as u8 - 1; // assume push worked, is unique
+    let mut prop_idx = PROPOSALS_STORE.get_len(deps.storage)? as u8;
+    if prop_idx == 0 {
+        return Err(CustomContractError::Std(StdError::NotFound {
+            kind: "No proposals".to_string(),
+        }));
+    }
+    prop_idx -= 1; // assume push worked, is unique
     let prop = PROPOSALS_STORE.get_at(deps.storage, prop_idx as u32)?;
     println!("{:?} should match {:?}", proposal_id, prop.id);
     println!("TODO check vote sender is {:?}", scrt_addr);
@@ -101,8 +123,11 @@ pub fn try_cast_vote(
     let voters = PROPOSAL_VOTERS_STORE.add_suffix(&[prop_idx]);
     let mut vp = voters.get(deps.storage, &eth_addr).unwrap();
     let power = vp.power;
+    // Should sanity check power?
     if vp.has_voted {
-        return Err(CustomContractError::Std(StdError::NotFound { kind: "Has already voted".to_string() }));
+        return Err(CustomContractError::Std(StdError::NotFound {
+            kind: "Has already voted".to_string(),
+        }));
     }
     vp.has_voted = true;
     voters.insert(deps.storage, &eth_addr, &vp)?;
@@ -110,6 +135,7 @@ pub fn try_cast_vote(
     // TODO filter by id instead of assuming last
     let mut prop = PROPOSALS_STORE.pop(deps.storage)?;
     // TODO ensure choice is within choice_count
+    // TODO check for overflow
     prop.counters[choice as usize] += power;
     PROPOSALS_STORE.push(deps.storage, &prop)?;
 
@@ -118,11 +144,19 @@ pub fn try_cast_vote(
 
 pub fn try_add_proposal(
     deps: DepsMut,
+    info: MessageInfo,
     id: String,
     choice_count: u8,
     start_time: Timestamp,
     end_time: Timestamp,
 ) -> Result<Response, CustomContractError> {
+    let owner = OWNER.load(deps.storage)?;
+    if owner != info.sender {
+        return Err(CustomContractError::Std(StdError::NotFound {
+            kind: "Not the owner".to_string(),
+        }));
+    }
+
     let prop = Proposal::new(id.clone(), choice_count, start_time, end_time);
     // TODO check for duplicate id in store, overwriting if so
     PROPOSALS_STORE.push(deps.storage, &prop)?;
@@ -160,15 +194,41 @@ fn query_current_proposal(
     };
     Ok(resp)
 }
+fn query_proposal_by_id(deps: Deps, proposal_id: &str) -> StdResult<ProposalResponse> {
+    let iter = PROPOSALS_STORE.iter(deps.storage)?;
+    for (_, res) in iter.enumerate() {
+        let prop = res?;
+        if prop.id == proposal_id {
+            return Ok(ProposalResponse {
+                id: prop.id,
+                choice_count: prop.choice_count,
+            });
+        }
+    }
+    return Ok(ProposalResponse {
+        id: "Proposal not found".to_string(),
+        choice_count: 0,
+    });
+    // return Err(CustomContractError::Std(StdError::NotFound {
+    //     kind: "Proposal not found".to_string(),
+    // }));
+}
+fn query_proposal_count(deps: Deps) -> StdResult<CountResponse> {
+    let prop_len = PROPOSALS_STORE.get_len(deps.storage)?;
+    let resp = CountResponse {
+        count: Uint256::from(prop_len),
+    };
+    Ok(resp)
+}
+// Show registered voters for current proposal
 fn query_voter_count(
     deps: Deps,
     //proposal_id: &str, // TODO
 ) -> StdResult<CountResponse> {
-    let prop_idx = PROPOSALS_STORE.get_len(deps.storage)? as u8 - 1; // assume push worked, is unique
+    let prop_idx = PROPOSALS_STORE.get_len(deps.storage)? as u8 - 1;
+    // assume push worked, is unique
     // let prop = PROPOSALS_STORE.get_at(deps.storage, prop_idx as u32)?;
     //prinln!("{:?} should match {:?}", proposal_id, prop.id);
-    //println!("TODO check vote sender is {:?}", scrt_addr);
-    // 2. check voter registration, ensure vote once, use power
     let voters = PROPOSAL_VOTERS_STORE.add_suffix(&[prop_idx]);
     let resp = CountResponse {
         count: Uint256::from(voters.get_len(deps.storage)?),
@@ -182,7 +242,7 @@ mod tests {
     use super::*;
 
     use cosmwasm_std::coins;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info };
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 
     #[test]
     fn proper_instantialization() {

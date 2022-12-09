@@ -32,6 +32,8 @@ pub enum ExecuteMsg {
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     CurrentProposal {},
+    ProposalById {proposal_id: String},
+    ProposalCount {},
     VoterCount {},
     WhoWon {proposal_id: String},
 }

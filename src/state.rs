@@ -1,7 +1,9 @@
-use cosmwasm_std::{Timestamp, Uint256};
-use secret_toolkit::storage::{AppendStore, Keymap};
+use cosmwasm_std::{Timestamp, Uint256, Addr};
+use secret_toolkit::storage::{Item, AppendStore, Keymap};
 
 use serde::{Deserialize, Serialize};
+
+pub static OWNER: Item<Addr> = Item::new(b"owner");
 
 pub static PROPOSALS_STORE: AppendStore<Proposal> = AppendStore::new(b"proposals");
 // Keymap but similar new prefix for each proposal
@@ -23,7 +25,6 @@ impl ProposalVoter {
         scrt_addr: String,
         power: Uint256,
     ) -> ProposalVoter {
-        // TODO check if already registered
         return ProposalVoter {
             proposal_id,
             eth_addr,
@@ -40,7 +41,7 @@ pub struct Proposal {
     pub choice_count: u8,
     pub start_time: Timestamp,
     pub end_time: Timestamp,
-    pub counters: [Uint256; 4],
+    pub counters: [Uint256; 4], // TODO be dynamic, allow more than 4 choices
 }
 
 impl Proposal {

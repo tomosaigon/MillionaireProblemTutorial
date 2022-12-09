@@ -80,11 +80,23 @@ address: build
 CADDR := $(shell cat target/address)
 .PHONY: proposal
 proposal:
-	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"submit_proposal": {"id": "prop1sozu", "choice_count": 4, "start_time": "1101", "end_time": "1201"}}' --from $(SCRTFROM) -y
+	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"submit_proposal": {"id": "propcli1", "choice_count": 4, "start_time": "1101", "end_time": "1201"}}' --from $(SCRTFROM) -y
 
 .PHONY: proposal2
 proposal2:
-	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"submit_proposal": {"id": "prop2", "choice_count": 2, "start_time": "1101", "end_time": "1201"}}' --from $(SCRTFROM) -y
+	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"submit_proposal": {"id": "propcli2", "choice_count": 2, "start_time": "1101", "end_time": "1201"}}' --from $(SCRTFROM) -y
+
+.PHONY: countproposals
+countproposals:
+	SGX_MODE=SW secretcli q compute query $(CADDR) '{"proposal_count": {}}'
+
+.PHONY: showpropcli1
+showpropcli1:
+	SGX_MODE=SW secretcli q compute query $(CADDR) '{"proposal_by_id": {"proposal_id": "propcli1"}}'
+
+.PHONY: showpropcli2
+showpropcli2:
+	SGX_MODE=SW secretcli q compute query $(CADDR) '{"proposal_by_id": {"proposal_id": "propcli2"}}'
 
 .PHONY: showproposal
 showproposal:
@@ -92,7 +104,7 @@ showproposal:
 
 .PHONY: regvoter
 regvoter:
-	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"register_voter": {"proposal_id": "prop1", "eth_addr": "0xDEAD", "scrt_addr": "secretvoter1", "power": "100"}}' --from $(SCRTFROM) -y
+	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"register_voter": {"proposal_id": "propcli1", "eth_addr": "0xDEAD", "scrt_addr": "secretvoter1", "power": "100"}}' --from $(SCRTFROM) -y
 
 .PHONY: countvoters
 countvoters:
@@ -100,6 +112,6 @@ countvoters:
 
 .PHONY: castvote
 castvote: #proposal regvoter
-	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"cast_vote": {"proposal_id": "prop1", "eth_addr": "0xDEAD", "scrt_addr": "secretvoter1", "choice": 1}}' --from $(SCRTFROM) -y
+	SGX_MODE=SW secretcli tx compute execute $(CADDR) '{"cast_vote": {"proposal_id": "propcli1", "eth_addr": "0xDEAD", "scrt_addr": "secretvoter1", "choice": 1}}' --from $(SCRTFROM) -y
 	sleep 10
-	SGX_MODE=SW secretcli q compute query $(CADDR) '{"who_won": {"proposal_id": "prop1"}}'
+	SGX_MODE=SW secretcli q compute query $(CADDR) '{"who_won": {"proposal_id": "propcli1"}}'
