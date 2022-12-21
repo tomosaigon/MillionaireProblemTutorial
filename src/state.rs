@@ -11,7 +11,7 @@ pub static PROPOSAL_VOTERS_STORE: Keymap<String, ProposalVoter> = Keymap::new(b"
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
 pub struct ProposalVoter {
-    pub proposal_id: String, // TODO prop id and eth addr are the map key
+    pub proposal_id: String, 
     pub eth_addr: String,
     pub scrt_addr: String,
     pub power: Uint256,
@@ -41,13 +41,10 @@ pub struct Proposal {
     pub choice_count: u8,
     pub start_time: Timestamp,
     pub end_time: Timestamp,
-    pub counters: [Uint256; 4], // TODO be dynamic, allow more than 4 choices
+    pub counters: [Uint256; 4],
 }
 
 impl Proposal {
-    /// Constructor function. Takes input parameters and initializes a struct containing
-    /// those items
-    // TODO   only DAO admins can  create new proposals
     pub fn new(
         id: String,
         choice_count: u8,

@@ -51,7 +51,6 @@ pub struct WinnerResponse {
     pub choice_count: Uint256,
 }
 
-// We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct CountResponse {
     pub count: Uint256,
